@@ -6,6 +6,8 @@ FPS = 50
 
 screen = pygame.display.set_mode(SIZE)
 clock = pygame.time.Clock()
+all_sprites = pygame.sprite.Group()
+tiles_sprites = pygame.sprite.Group()
 
 
 def load_image(name, colorkey=None):
@@ -23,6 +25,13 @@ def load_image(name, colorkey=None):
     else:
         image = image.convert_alpha()
     return image
+
+
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, image, x, y):
+        super().__init__(all_sprites, tiles_sprites)
+        self.image = load_image(image)
+        self.rect = self.image.get_rect().move(x, y)
 
 
 running = True
