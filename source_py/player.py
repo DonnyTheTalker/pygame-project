@@ -1,5 +1,9 @@
 import pygame, os, sys, time
 
+# Добавить константы стандартного ускорения, скорости, гравитации персонажа
+# Протестировать и посмотреть, чтобы динамика игры соответствовала этим скоростям
+# Добавить прыжки, отскоки от стен, подогнать их под (пока не существующую) систему анимаций
+
 pygame.init()
 SIZE = WIDTH, HEIGHT = 800, 600
 FPS = 60
@@ -79,8 +83,8 @@ class Player(pygame.sprite.Sprite):
 
     def setup_movement(self):
         self.speed = [0, 0]
-        self.velocity = [0, 0]
-        self.gravity = 0.2
+        self.velocity = [3, 3]
+        self.gravity = 0.3
         self.base_speed = [2, 0]
         self.max_speed = [3, 3]
         self.moving_left, self.moving_right = False, False
@@ -88,13 +92,13 @@ class Player(pygame.sprite.Sprite):
     def update_movement(self):
         self.speed = [0, 0]
         if self.moving_right:
-            self.speed[0] += self.base_speed[0]
+            self.speed[0] += self.velocity[0]
         if self.moving_left:
-            self.speed[0] -= self.base_speed[0]
+            self.speed[0] -= self.velocity[0]
 
-        self.speed[1] += self.base_speed[1]
-        self.base_speed[1] += self.gravity
-        self.base_speed[1] = min(self.base_speed[1], self.max_speed[1])
+        self.speed[1] += self.velocity[1]
+        self.velocity[1] += self.gravity
+        self.velocity[1] = min(self.velocity[1], self.max_speed[1])
         self.speed[1] = min(self.speed[1], self.max_speed[1])
 
     def move(self):
@@ -117,7 +121,7 @@ class Player(pygame.sprite.Sprite):
                 self.rect.bottom = obj.rect.top
                 collision["bottom"] = True
             else:
-                self.rect.top = obj.rect.top
+                self.rect.top = obj.rect.bottom
                 collision["top"] = True
 
         return collision
@@ -149,13 +153,13 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            print("down")
             if event.key == pygame.K_RIGHT:
                 p.moving_right = True
             elif event.key == pygame.K_LEFT:
                 p.moving_left = True
+            elif event.key == pygame.K_UP:
+                p.velocity[1] = -7.5
         elif event.type == pygame.KEYUP:
-            print('up')
             if event.key == pygame.K_RIGHT:
                 p.moving_right = False
             elif event.key == pygame.K_LEFT:
