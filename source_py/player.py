@@ -86,7 +86,7 @@ class Player(pygame.sprite.Sprite):
         self.velocity = [3, 3]
         self.gravity = 0.3
         self.base_speed = [2, 0]
-        self.max_speed = [3, 3]
+        self.max_speed = [4, 5]
         self.moving_left, self.moving_right = False, False
 
     def update_movement(self):
@@ -124,7 +124,10 @@ class Player(pygame.sprite.Sprite):
                 self.rect.top = obj.rect.bottom
                 collision["top"] = True
 
-        return collision
+        if collision["bottom"]:
+            self.velocity[1] = 0
+        if collision["top"]:
+            self.velocity[1] = 0
 
 
 def generate_level():
@@ -164,6 +167,8 @@ while running:
                 p.moving_right = False
             elif event.key == pygame.K_LEFT:
                 p.moving_left = False
+
+    print(p.velocity)
 
     screen.fill(pygame.Color("black"))
     delay = clock.tick(FPS)
