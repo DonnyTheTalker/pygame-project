@@ -20,7 +20,7 @@ level_map = ['............................',
              '#..........................#',
              '.###...................###.',
              '........###......###........',
-             '..............@.............',
+             '#.............@............#',
              '############################']
 
 
@@ -94,7 +94,8 @@ class Player(pygame.sprite.Sprite):
 
         self.speed[1] += self.base_speed[1]
         self.base_speed[1] += self.gravity
-        self.base_speed[1] = max(self.base_speed[1], self.max_speed[1])
+        self.base_speed[1] = min(self.base_speed[1], self.max_speed[1])
+        self.speed[1] = min(self.speed[1], self.max_speed[1])
 
     def move(self):
         collision = {"top": False, "right": False, "left": False, "bottom": False}
@@ -126,7 +127,6 @@ def generate_level():
     new_player, x, y = None, None, None
     for y in range(len(level_map)):
         for x in range(len(level_map[y])):
-            print(level_map[y][x])
             if level_map[y][x] == '#':
                 Tile("wall", x, y)
             else:
@@ -149,11 +149,13 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
+            print("down")
             if event.key == pygame.K_RIGHT:
                 p.moving_right = True
             elif event.key == pygame.K_LEFT:
                 p.moving_left = True
-        elif event.type == pygame.K_UP:
+        elif event.type == pygame.KEYUP:
+            print('up')
             if event.key == pygame.K_RIGHT:
                 p.moving_right = False
             elif event.key == pygame.K_LEFT:
