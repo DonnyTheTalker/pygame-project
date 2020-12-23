@@ -74,6 +74,9 @@ class Collision:
 
 
 class Unit(pygame.sprite.Sprite):
+    LEFT = -1
+    RIGHT = 1
+
     def __init__(self, x, y, image, *sprite_groups):
         super().__init__(all_sprites, *sprite_groups)
         self.image = image
@@ -106,6 +109,8 @@ class Player(Unit):
 
         self.jump_count = 2
         self.is_sliding = False
+        self.in_air = False
+        self.cur_rotation = Unit.RIGHT
 
     def update_movement(self):
         self.speed = [0, 0]
@@ -149,6 +154,7 @@ class Player(Unit):
                 collision["top"] = True
 
         if collision["bottom"]:
+            self.in_air = False
             self.jump_count = 2
             self.velocity[1] = 0
             self.sliding_right = False
@@ -171,6 +177,27 @@ class Player(Unit):
 
         if collision["top"]:
             self.velocity[1] = 0
+
+    def update(self, *args):
+        if len(args) > 0:
+            event = args[0]
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RIGHT:
+                    self.moving_right = True
+                    self.cur_rotation = Unit.RIGHT
+                elif event.key == pygame.K_LEFT:
+                    self.moving_left = True
+                    self.cur_rotation = Unit.LEFT
+                elif event.key == pygame.K_UP:
+                    if p.jump_count > 0:
+                        self.in_air = True
+                        p.velocity[1] = -7.5
+                        p.jump_count -= 1
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_RIGHT:
+                    p.moving_right = False
+                elif event.key == pygame.K_LEFT:
+                    p.moving_left = False
 
 
 def generate_level():
@@ -198,20 +225,10 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RIGHT:
-                p.moving_right = True
-            elif event.key == pygame.K_LEFT:
-                p.moving_left = True
-            elif event.key == pygame.K_UP:
-                if p.jump_count > 0:
-                    p.velocity[1] = -7.5
-                    p.jump_count -= 1
-        elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_RIGHT:
-                p.moving_right = False
-            elif event.key == pygame.K_LEFT:
-                p.moving_left = False
+        if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+            p.update(event)
+
+    print(p.in_air, p.is_sliding, p.cur_rotation)
 
     screen.fill(pygame.Color("black"))
     delay = clock.tick(FPS)
