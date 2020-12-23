@@ -73,12 +73,25 @@ class Collision:
         return collision_detected
 
 
-class Player(pygame.sprite.Sprite):
+class Unit(pygame.sprite.Sprite):
+    def __init__(self, x, y, image, *sprite_groups):
+        super().__init__(all_sprites, *sprite_groups)
+        self.image = image
+        self.rect = self.image.get_rect().move(x, y)
+
+    def setup_movemet(self):
+        pass
+
+    def update_movement(self):
+        pass
+
+    def move(self):
+        pass
+
+
+class Player(Unit):
     def __init__(self, x, y):
-        super().__init__(player_sprites, all_sprites)
-        self.image = player_image
-        self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = x * tile_width, y * tile_height
+        super().__init__(x * tile_width, y * tile_height, player_image, (player_sprites,))
         self.setup_movement()
 
     def setup_movement(self):
