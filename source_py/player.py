@@ -1,4 +1,5 @@
 import pygame, os, sys, time
+from main import SpriteStates, AnimatedSprite
 
 # Добавить константы стандартного ускорения, скорости, гравитации персонажа
 # Протестировать и посмотреть, чтобы динамика игры соответствовала этим скоростям
@@ -21,9 +22,9 @@ level_map = ['............................',
              '#....#................#....#',
              '#..........................#',
              '#..........................#',
-             '#..........................#',
              '.###...................###.',
-             '........###......###........',
+             '........##........##........',
+             '#..........................#',
              '#.............@............#',
              '############################']
 
@@ -46,7 +47,7 @@ def load_image(name, colorkey=None):
 
 
 tiles = {'wall': load_image("box.png"), 'empty': load_image("grass.png")}
-player_image = load_image("player.png")
+player_spritesheet = "player_spritesheet.png"
 tile_width, tile_height = 25, 40
 
 all_sprites = pygame.sprite.Group()
@@ -73,14 +74,12 @@ class Collision:
         return collision_detected
 
 
-class Unit(pygame.sprite.Sprite):
+class Unit(AnimatedSprite):
     LEFT = -1
     RIGHT = 1
 
-    def __init__(self, x, y, image, *sprite_groups):
-        super().__init__(all_sprites, *sprite_groups)
-        self.image = image
-        self.rect = self.image.get_rect().move(x, y)
+    def __init__(self, spritesheet, x, y, *groups):
+        super().__init__(spritesheet, x, y, *groups)
 
     def setup_movemet(self):
         pass
@@ -91,10 +90,23 @@ class Unit(pygame.sprite.Sprite):
     def move(self):
         pass
 
+    def update_status(self, is_sliding, in_air, cur_rotation, falling, moving):
+        if is_sliding and in_air:
+            super().set_status(SpriteStates.SLIDING, not self.cur_rotation == Unit.RIGHT)
+        elif in_air:
+            if falling:
+                super().set_status(SpriteStates.FALLING, cur_rotation == Unit.RIGHT)
+            else:
+                super().set_status(SpriteStates.JUMPING, cur_rotation == Unit.RIGHT)
+        elif moving:
+            super().set_status(SpriteStates.MOVING, cur_rotation == Unit.RIGHT)
+        else:
+            super().set_status(SpriteStates.IDLE, cur_rotation == Unit.RIGHT)
+
 
 class Player(Unit):
     def __init__(self, x, y):
-        super().__init__(x * tile_width, y * tile_height, player_image, (player_sprites,))
+        super().__init__(player_spritesheet, x * tile_width, y * tile_height, (player_sprites,))
         self.setup_movement()
 
     def setup_movement(self):
@@ -153,6 +165,8 @@ class Player(Unit):
                 self.rect.top = obj.rect.bottom
                 collision["top"] = True
 
+        if not collision["bottom"] and self.velocity[1] > 1.75:
+            self.in_air = True
         if collision["bottom"]:
             self.in_air = False
             self.jump_count = 2
@@ -165,11 +179,17 @@ class Player(Unit):
             self.sliding_left = True
             self.sliding_right = False
             self.is_sliding = True
+            # if self.in_air:
+            #     self.cur_rotation = {Unit.RIGHT: Unit.LEFT, Unit.LEFT: Unit.RIGHT}[
+            #         self.cur_rotation]
         elif collision["right"] and not self.sliding_right:
             self.sliding_right = True
             self.sliding_left = False
             self.is_sliding = True
             self.jump_count = 1
+            # if self.in_air:
+            #     self.cur_rotation = {Unit.RIGHT: Unit.LEFT, Unit.LEFT: Unit.RIGHT}[
+            #         self.cur_rotation]
         elif not collision["right"] and not collision["left"]:
             if self.is_sliding:
                 self.is_sliding = False
@@ -177,6 +197,8 @@ class Player(Unit):
 
         if collision["top"]:
             self.velocity[1] = 0
+        self.update_status(self.is_sliding, self.in_air, self.cur_rotation,
+                           self.velocity[1] > 0, self.moving_right ^ self.moving_left)
 
     def update(self, *args):
         if len(args) > 0:
@@ -198,6 +220,9 @@ class Player(Unit):
                     p.moving_right = False
                 elif event.key == pygame.K_LEFT:
                     p.moving_left = False
+
+    def animation(self):
+        AnimatedSprite.update(self)
 
 
 def generate_level():
@@ -227,13 +252,13 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
             p.update(event)
-
-    print(p.in_air, p.is_sliding, p.cur_rotation)
-
+    p.animation()
+    print(f"is_sliding: {p.is_sliding}, in_air: {p.in_air}, cur_rotation: {p.cur_rotation}")
     screen.fill(pygame.Color("black"))
     delay = clock.tick(FPS)
     screen.blit(background, (0, 0))
     tile_sprites.draw(screen)
+    pygame.draw.rect(screen, "red", p.rect)
     player_sprites.draw(screen)
     pygame.display.flip()
 
