@@ -98,9 +98,14 @@ class Player(Unit):
         self.speed = [0, 0]
         self.velocity = [3, 3]
         self.gravity = 0.3
-        self.base_speed = [2, 0]
-        self.max_speed = [4, 5]
+        self.max_speed = [4, 16]
+        self.max_speed_sliding = [4, 4]
+
         self.moving_left, self.moving_right = False, False
+        self.sliding_left, self.sliding_right = False, False
+
+        self.jump_count = 2
+        self.is_sliding = False
 
     def update_movement(self):
         self.speed = [0, 0]
@@ -110,9 +115,15 @@ class Player(Unit):
             self.speed[0] -= self.velocity[0]
 
         self.speed[1] += self.velocity[1]
+
         self.velocity[1] += self.gravity
         self.velocity[1] = min(self.velocity[1], self.max_speed[1])
-        self.speed[1] = min(self.speed[1], self.max_speed[1])
+
+        if self.is_sliding:
+            self.speed[1] = min(self.speed[1], self.max_speed_sliding[1])
+            self.velocity[1] = min(self.velocity[1], self.max_speed_sliding[1])
+        else:
+            self.speed[1] = min(self.speed[1], self.max_speed[1])
 
     def move(self):
         collision = {"top": False, "right": False, "left": False, "bottom": False}
@@ -138,7 +149,26 @@ class Player(Unit):
                 collision["top"] = True
 
         if collision["bottom"]:
+            self.jump_count = 2
             self.velocity[1] = 0
+            self.sliding_right = False
+            self.sliding_left = False
+            self.is_sliding = False
+        elif collision["left"] and not self.sliding_left:
+            self.jump_count = 1
+            self.sliding_left = True
+            self.sliding_right = False
+            self.is_sliding = True
+        elif collision["right"] and not self.sliding_right:
+            self.sliding_right = True
+            self.sliding_left = False
+            self.is_sliding = True
+            self.jump_count = 1
+        elif not collision["right"] and not collision["left"]:
+            if self.is_sliding:
+                self.is_sliding = False
+                self.velocity[1] = min(self.velocity[1], self.max_speed_sliding[1])
+
         if collision["top"]:
             self.velocity[1] = 0
 
@@ -174,14 +204,14 @@ while running:
             elif event.key == pygame.K_LEFT:
                 p.moving_left = True
             elif event.key == pygame.K_UP:
-                p.velocity[1] = -7.5
+                if p.jump_count > 0:
+                    p.velocity[1] = -7.5
+                    p.jump_count -= 1
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_RIGHT:
                 p.moving_right = False
             elif event.key == pygame.K_LEFT:
                 p.moving_left = False
-
-    print(p.velocity)
 
     screen.fill(pygame.Color("black"))
     delay = clock.tick(FPS)
