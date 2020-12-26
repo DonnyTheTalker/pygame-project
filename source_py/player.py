@@ -122,6 +122,7 @@ class Player(Unit):
         self.jump_count = 2
         self.is_sliding = False
         self.in_air = False
+        self.has_extra_jump = False
         self.cur_rotation = Unit.RIGHT
 
     def update_movement(self):
@@ -167,6 +168,7 @@ class Player(Unit):
 
         if not collision["bottom"] and self.velocity[1] > 1.75:
             self.in_air = True
+
         if collision["bottom"]:
             self.in_air = False
             self.jump_count = 2
@@ -174,19 +176,25 @@ class Player(Unit):
             self.sliding_right = False
             self.sliding_left = False
             self.is_sliding = False
+
         elif collision["left"] and not self.sliding_left:
-            self.jump_count = 1
+            self.jump_count = 0
             self.sliding_left = True
+            self.has_extra_jump = True
             self.sliding_right = False
             self.is_sliding = True
+
         elif collision["right"] and not self.sliding_right:
             self.sliding_right = True
+            self.has_extra_jump = True
             self.sliding_left = False
             self.is_sliding = True
-            self.jump_count = 1
+            self.jump_count = 0
+
         elif not collision["right"] and not collision["left"]:
             if self.is_sliding:
                 self.is_sliding = False
+                self.has_extra_jump = False
                 self.velocity[1] = min(self.velocity[1], self.max_speed_sliding[1])
 
         if collision["top"]:
@@ -205,15 +213,16 @@ class Player(Unit):
                     self.moving_left = True
                     self.cur_rotation = Unit.LEFT
                 elif event.key == pygame.K_UP:
-                    if p.jump_count > 0:
+                    if self.jump_count > 0 or self.has_extra_jump:
                         self.in_air = True
-                        p.velocity[1] = -7.5
-                        p.jump_count -= 1
+                        self.has_extra_jump = False
+                        self.velocity[1] = -7.5
+                        self.jump_count = max(self.jump_count - 1, 0)
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_RIGHT:
-                    p.moving_right = False
+                    self.moving_right = False
                 elif event.key == pygame.K_LEFT:
-                    p.moving_left = False
+                    self.moving_left = False
 
     def animation(self):
         AnimatedSprite.update(self)
@@ -246,13 +255,13 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
             p.update(event)
+
     p.animation()
-    print(f"is_sliding: {p.is_sliding}, in_air: {p.in_air}, cur_rotation: {p.cur_rotation}")
+
     screen.fill(pygame.Color("black"))
     delay = clock.tick(FPS)
     screen.blit(background, (0, 0))
     tile_sprites.draw(screen)
-    pygame.draw.rect(screen, "red", p.rect)
     player_sprites.draw(screen)
     pygame.display.flip()
 
