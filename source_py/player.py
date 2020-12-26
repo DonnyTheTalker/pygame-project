@@ -92,7 +92,7 @@ class Unit(AnimatedSprite):
 
     def update_status(self, is_sliding, in_air, cur_rotation, falling, moving):
         if is_sliding and in_air:
-            super().set_status(SpriteStates.SLIDING, not self.cur_rotation == Unit.RIGHT)
+            super().set_status(SpriteStates.SLIDING, not cur_rotation == Unit.RIGHT)
         elif in_air:
             if falling:
                 super().set_status(SpriteStates.FALLING, cur_rotation == Unit.RIGHT)
@@ -179,17 +179,11 @@ class Player(Unit):
             self.sliding_left = True
             self.sliding_right = False
             self.is_sliding = True
-            # if self.in_air:
-            #     self.cur_rotation = {Unit.RIGHT: Unit.LEFT, Unit.LEFT: Unit.RIGHT}[
-            #         self.cur_rotation]
         elif collision["right"] and not self.sliding_right:
             self.sliding_right = True
             self.sliding_left = False
             self.is_sliding = True
             self.jump_count = 1
-            # if self.in_air:
-            #     self.cur_rotation = {Unit.RIGHT: Unit.LEFT, Unit.LEFT: Unit.RIGHT}[
-            #         self.cur_rotation]
         elif not collision["right"] and not collision["left"]:
             if self.is_sliding:
                 self.is_sliding = False
