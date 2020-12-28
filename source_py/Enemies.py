@@ -16,6 +16,21 @@ enemy_sprites = pygame.sprite.Group()
 FPS = 100
 STEP = 50
 
+# Shooting
+EAST = 0
+SE = 1
+SOUTH = 2
+SW = 3
+WEST = 4
+NW = 5
+NORTH = 6
+NE = 7
+SHOOTING_SIDES = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]]
+SHOOT_AROUND = [i for i in range(8)]
+SHOOT_FOUR_SIDES = [0, 2, 4, 6]
+SHOOT_FOUR_SIDES_45 = [1, 3, 5, 7]
+#
+
 
 class SpriteStates:
     IDLE = "1idle"
@@ -168,6 +183,48 @@ class MovingEnemy(pygame.sprite.Sprite):
                 self.last_time = time.time()
                 hit_player(self.damage)
         self.check_state()
+
+
+class StaticEnemies(pygame.sprite.Sprite):
+    def __init__(self, x, y, damage, image):
+        super().__init__(all_sprites, enemy_sprites)
+        self.damage = damage
+        self.image = image
+        self.rect = self.image.get_rect().move(x * tile_width, y * tile_height)
+
+
+class ShootingEnemy(StaticEnemies):
+    def __init__(self, x, y, damage, image, bullet_image, all_sides=None):
+        super().__init__(x, y, damage, image)
+        if all_sides is None:
+            all_sides = [EAST, SE, SOUTH, SW, WEST, NW, NORTH, NE]
+        self.bullet_image = bullet_image
+        self.all_sides = all_sides
+        self.last_time = 0
+
+    def update(self):
+        if time.time() - self.last_time > 1.5:
+            self.last_time = time.time()
+            for i in self.all_sides:
+                Bullet(self.rect.x, self.rect.y, self.image,
+                       2, 1, SHOOTING_SIDES[i])
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y, image, speed, damage, sides):
+        super().__init__(all_sprites, enemy_sprites)
+        self.damage = damage
+        self.image = image
+        self.rect = self.image.get_rect().move(x, y)
+        self.side_x = sides[0]
+        self.side_y = sides[1]
+        self.speed = speed
+        self.last_time = 0
+
+    def update(self):
+        self.rect.x += int(self.side_x * self.speed)
+        self.rect.y += int(self.side_y * self.speed)
+        self.image.get_rect().move(self.rect.x, self.rect.y)
 
 
 def move_player(player_moved, move_type, last_x, last_y):
