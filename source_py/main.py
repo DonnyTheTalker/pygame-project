@@ -185,9 +185,9 @@ if __name__ == "__main__":
     running = True
     for i, state in enumerate(SpriteStates.get_states()):
         if i < 5:
-            player = Player("player_spritesheet.png", 40 + i * 70, 40)
+            player = Player("spritesheet1.png", 40 + i * 70, 40)
             player.set_status(state)
-            player = Player("player_spritesheet.png", 40 + i * 70, 150)
+            player = Player("spritesheet1.png", 40 + i * 70, 150)
             player.set_status(state, False)
 
     while running:

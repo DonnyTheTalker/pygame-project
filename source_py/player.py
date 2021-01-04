@@ -64,7 +64,7 @@ def load_image(name, colorkey=None):
 # На удаление
 # {
 tiles = {'wall': load_image("box.png"), 'empty': load_image("grass.png")}
-player_spritesheet = "player_spritesheet.png"
+player_spritesheet = "spritesheet1.png"
 tile_width, tile_height = 25, 40
 
 all_sprites = pygame.sprite.Group()

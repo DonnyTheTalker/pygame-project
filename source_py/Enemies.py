@@ -4,6 +4,8 @@ import sys
 import inspect
 import time
 from copy import deepcopy
+from source_py import main
+from source_py import player as pl
 
 pygame.init()
 WIDTH, HEIGHT = 550, 600
@@ -20,7 +22,7 @@ STEP = 50
 
 def load_image(name, colorkey=None):
     # jpg, png, gif без анимации, bmp, pcx, tga, tif, lbm, pbm, xpm
-    fullname = os.path.join("data", "images", name)  # получение полного пути к файлу
+    fullname = os.path.join("..\\", "data", "images", name)  # получение полного пути к файлу
     if not os.path.isfile(fullname):  # если файл не найден
         print(f"Файл с изображением {fullname} не найден")
         sys.exit()
@@ -88,74 +90,6 @@ def real_coords(coord, x=False, y=False):
             return coord * tile_height
 
 
-class AnimatedSprite(pygame.sprite.Sprite):
-    def __init__(self, spritesheet, x, y, *groups):
-        super().__init__(all_sprites, *groups)
-        self.direction = True
-        self.status = None
-        self.current_sprite = 0
-        self.sprites = dict()
-        # Создаем ассоциативный массив спрайтов
-        # Для каждого состояния анимации
-        for state in SpriteStates.get_states():
-            self.sprites[state] = list()
-        self.slice_sprites(load_image(spritesheet))
-        self.set_status(SpriteStates.IDLE)
-        self.rect = self.image.get_rect().move(x, y)
-
-    def update(self):
-        # Добавить контроль длительности анимации
-        self.current_sprite = (self.current_sprite + 1) % len(self.sprites[self.status])
-        self.update_sprite()
-
-    def set_status(self, status, direction=True):
-        """Смена режима анимации"""
-        self.status = status
-        self.direction = direction
-        self.current_sprite = 0
-        self.update_sprite()
-
-    def update_sprite(self):
-        """Изменение текущего спрайта"""
-        self.image = self.sprites[self.status][self.current_sprite]
-        self.image = pygame.transform.flip(self.image, not self.direction, False)
-
-    def slice_sprites(self, spritesheet):
-        """Генерирует сетку спрайтов, найденных в spritesheet"""
-        sprites = list()  # Сетка обрезанных спрайтов
-        top, bottom = None, None
-        cur_row = -1
-        for y in range(spritesheet.get_height()):
-            empty_row = not any(spritesheet.get_at((x, y))[3] > 0
-                                for x in range(spritesheet.get_width()))
-            if empty_row and top:
-                bottom = y - 1
-                cur_row += 1
-                sprites.append(list())
-                right, left = None, None
-                cur_column = -1
-                for x in range(spritesheet.get_width()):
-                    empty_column = not any(spritesheet.get_at((x, y))[3] > 0
-                                           for y in range(top, bottom + 1))
-                    if empty_column and left:
-                        right = x - 1
-                        cur_column += 1
-                        sprite = spritesheet.subsurface(pygame.Rect(left, top, right - left + 1,
-                                                                    bottom - top + 1))
-                        sprites[cur_row].append(sprite)
-                        right, left = None, None
-                    elif not empty_column and not left:
-                        left = x
-                top, bottom = None, None
-            elif not empty_row and not top:
-                top = y
-        for i, key in enumerate(self.sprites):
-            if i < len(sprites):
-                self.sprites[key] = sprites[i].copy()
-            else:
-                break
-
-
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
         super().__init__(tiles_group, all_sprites)
@@ -164,20 +98,10 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(pos_x * tile_width, pos_y * tile_height)
 
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
-        super().__init__(player_group, all_sprites)
-        self.image = player_image
-        self.hp = 3
-        self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 5)
-
-    def update(self):
-        if not self.hp:
-            print("Убили!")
-            self.kill()
+pl.hp = 3
 
 
-class MovingEnemy(AnimatedSprite):
+class MovingEnemy(main.AnimatedSprite):
     def __init__(self, x, y, damage, speed, points, spritesheet):
         super().__init__(spritesheet, x * tile_width, y * tile_height, enemy_group)
         self.damage = damage
@@ -261,7 +185,7 @@ class MovingEnemy(AnimatedSprite):
         super().update()
 
 
-class StaticEnemies(AnimatedSprite):
+class StaticEnemies(main.AnimatedSprite):
     def __init__(self, x, y, damage, spritesheet):
         super().__init__(spritesheet, x * tile_width, y * tile_height, enemy_group)
         self.damage = damage
@@ -373,7 +297,7 @@ def start_screen():
 
 
 def load_level(filename):
-    filename = 'levels/' + filename
+    filename = '../data/levels/' + filename
     with open(filename, "r") as map_file:
         level_map = [line.strip() for line in map_file]
         max_width = max(map(len, level_map))
@@ -390,7 +314,7 @@ def generate_level(level):
                 Tile("wall", x, y)
             if level[y][x] == "@":
                 Tile("empty", x, y)
-                new_player = Player(x, y)
+                new_player = pl.Player(x, y)
             if level[y][x] == "R":
                 Tile("empty", x, y)
                 MovingEnemy(x, y, 1, 1, [[x, y], [6, 10], [6, 9], [7, 9], [7, 8], [8, 8],
