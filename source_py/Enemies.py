@@ -4,11 +4,9 @@ import sys
 import inspect
 import time
 from copy import deepcopy
-from source_py import main
-from source_py import player as pl
 
 pygame.init()
-WIDTH, HEIGHT = 550, 600
+WIDTH, HEIGHT = 1050, 750
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
@@ -16,8 +14,10 @@ tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
-FPS = 100
+FPS = 60
 STEP = 50
+FRAME = 0
+MAX_BULLET_SPEED = 5
 
 
 def load_image(name, colorkey=None):
@@ -77,6 +77,8 @@ rat_image = load_image("mouse.png", -1)
 rat_image = pygame.transform.scale(rat_image, (50, 50))
 plant_image = load_image("plant.png", -1)
 plant_image = pygame.transform.scale(plant_image, (50, 50))
+bullet_image = load_image("bullet.png")
+bullet_image = pygame.transform.scale(bullet_image, (10, 10))
 tile_width = tile_height = 50
 
 
@@ -90,6 +92,74 @@ def real_coords(coord, x=False, y=False):
             return coord * tile_height
 
 
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, spritesheet, x, y, *groups):
+        super().__init__(all_sprites, *groups)
+        self.direction = True
+        self.status = None
+        self.current_sprite = 0
+        self.sprites = dict()
+        # Создаем ассоциативный массив спрайтов
+        # Для каждого состояния анимации
+        for state in SpriteStates.get_states():
+            self.sprites[state] = list()
+        self.slice_sprites(load_image(spritesheet))
+        self.set_status(SpriteStates.IDLE)
+        self.rect = self.image.get_rect().move(x, y)
+
+    def update(self):
+        # Добавить контроль длительности анимации
+        self.current_sprite = (self.current_sprite + 1) % len(self.sprites[self.status])
+        self.update_sprite()
+
+    def set_status(self, status, direction=True):
+        """Смена режима анимации"""
+        self.status = status
+        self.direction = direction
+        self.current_sprite = 0
+        self.update_sprite()
+
+    def update_sprite(self):
+        """Изменение текущего спрайта"""
+        self.image = self.sprites[self.status][self.current_sprite]
+        self.image = pygame.transform.flip(self.image, not self.direction, False)
+
+    def slice_sprites(self, spritesheet):
+        """Генерирует сетку спрайтов, найденных в spritesheet"""
+        sprites = list()  # Сетка обрезанных спрайтов
+        top, bottom = None, None
+        cur_row = -1
+        for y in range(spritesheet.get_height()):
+            empty_row = not any(spritesheet.get_at((x, y))[3] > 0
+                                for x in range(spritesheet.get_width()))
+            if empty_row and top:
+                bottom = y - 1
+                cur_row += 1
+                sprites.append(list())
+                right, left = None, None
+                cur_column = -1
+                for x in range(spritesheet.get_width()):
+                    empty_column = not any(spritesheet.get_at((x, y))[3] > 0
+                                           for y in range(top, bottom + 1))
+                    if empty_column and left:
+                        right = x - 1
+                        cur_column += 1
+                        sprite = spritesheet.subsurface(pygame.Rect(left, top, right - left + 1,
+                                                                    bottom - top + 1))
+                        sprites[cur_row].append(sprite)
+                        right, left = None, None
+                    elif not empty_column and not left:
+                        left = x
+                top, bottom = None, None
+            elif not empty_row and not top:
+                top = y
+        for i, key in enumerate(self.sprites):
+            if i < len(sprites):
+                self.sprites[key] = sprites[i].copy()
+            else:
+                break
+
+
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos_x, pos_y):
         super().__init__(tiles_group, all_sprites)
@@ -98,10 +168,20 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(pos_x * tile_width, pos_y * tile_height)
 
 
-pl.hp = 3
+class Player(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(player_group, all_sprites)
+        self.image = player_image
+        self.hp = 3
+        self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 5)
+
+    def update(self):
+        if not self.hp:
+            print("Убили!")
+            self.kill()
 
 
-class MovingEnemy(main.AnimatedSprite):
+class MovingEnemy(AnimatedSprite):
     def __init__(self, x, y, damage, speed, points, spritesheet):
         super().__init__(spritesheet, x * tile_width, y * tile_height, enemy_group)
         self.damage = damage
@@ -185,7 +265,7 @@ class MovingEnemy(main.AnimatedSprite):
         super().update()
 
 
-class StaticEnemies(main.AnimatedSprite):
+class StaticEnemies(AnimatedSprite):
     def __init__(self, x, y, damage, spritesheet):
         super().__init__(spritesheet, x * tile_width, y * tile_height, enemy_group)
         self.damage = damage
@@ -203,11 +283,10 @@ class ShootingEnemy(StaticEnemies):
         self.last_shoot_time = 0
 
     def update(self):
-        if time.time() - self.last_shoot_time > 1.5:
+        if time.time() - self.last_shoot_time > 10:
             self.last_shoot_time = time.time()
             for i in self.all_sides:
-                Bullet(self.rect.x, self.rect.y, self.bullet_image,
-                       2, 1, SHOOTING_SIDES[i])
+                SmartBullet(self.rect.x, self.rect.y, self.bullet_image, 1, 1)
         collisions = pygame.sprite.spritecollideany(self, player_group)
         if collisions:
             if time.time() - self.last_hit_time > 1.5:
@@ -217,20 +296,27 @@ class ShootingEnemy(StaticEnemies):
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, image, speed, damage, sides, is_friendly=False):
+    def __init__(self, x, y, image, speed, damage, sides=None, is_friendly=False):
         super().__init__(all_sprites, bullet_group)
+        if sides is None:
+            sides = [1, 1]
         self.damage = damage
         self.image = image
-        self.rect = self.image.get_rect().move(x, y)
+        self.rect = self.image.get_rect()
+        self.rect = self.rect.move(x + tile_width // 2 - self.rect.width // 2,
+                                   y + tile_height // 2 - self.rect.height // 2)
         self.side_x = sides[0]
         self.side_y = sides[1]
-        self.speed = speed
+        self.speed_x = speed
+        self.speed_y = speed
         self.last_time = 0
         self.is_friendly = is_friendly
 
     def update(self):
-        self.rect.x += int(self.side_x * self.speed)
-        self.rect.y += int(self.side_y * self.speed)
+        if self.speed_x > FRAME:
+            self.rect.x += int(self.side_x)
+        if self.speed_y > FRAME:
+            self.rect.y += int(self.side_y)
         self.image.get_rect().move(self.rect.x, self.rect.y)
         if not self.is_friendly:
             collides = pygame.sprite.spritecollideany(self, player_group)
@@ -250,6 +336,33 @@ class Bullet(pygame.sprite.Sprite):
             if collide.type == "wall":
                 # Анимация взрыва
                 self.kill()
+
+
+class SmartBullet(Bullet):
+    def __init__(self, x, y, image, speed, damage):
+        super().__init__(x, y, image, speed, damage)
+
+    def update(self):
+        diff_x, diff_y = 0, 0
+        x = self.rect.x + self.rect.w // 2 - (player.rect.x + player.rect.w // 2)
+        y = self.rect.y + self.rect.h // 2 - (player.rect.y + player.rect.h // 2)
+        if x:
+            self.side_x = -x // abs(x)
+            diff_y = abs(y) / abs(x)
+        else:
+            diff_y = 5
+        if y:
+            diff_x = abs(x) / abs(y)
+            self.side_y = -y // abs(y)
+        else:
+            diff_x = 5
+        if diff_y > diff_x and not x:
+            diff_x = diff_y * diff_x
+        elif not y:
+            diff_y = diff_x * diff_y
+        self.speed_x = diff_x
+        self.speed_y = diff_y
+        super().update()
 
 
 def move_player(player_moved, move_type, last_x, last_y):
@@ -314,7 +427,7 @@ def generate_level(level):
                 Tile("wall", x, y)
             if level[y][x] == "@":
                 Tile("empty", x, y)
-                new_player = pl.Player(x, y)
+                new_player = Player(x, y)
             if level[y][x] == "R":
                 Tile("empty", x, y)
                 MovingEnemy(x, y, 1, 1, [[x, y], [6, 10], [6, 9], [7, 9], [7, 8], [8, 8],
@@ -322,11 +435,11 @@ def generate_level(level):
                             "spritesheet1.png")
             if level[y][x] == "T":
                 Tile("empty", x, y)
-                ShootingEnemy(x, y, 1, "spritesheet1.png", plant_image, SHOOT_AROUND)
+                ShootingEnemy(x, y, 1, "spritesheet1.png", bullet_image, [EAST])
     return new_player, x, y
 
 
-player, level_x, level_y = generate_level(load_level("level1.txt"))
+player, level_x, level_y = generate_level(load_level("level2.txt"))
 
 
 start_screen()
@@ -352,6 +465,7 @@ while running:
     player_group.draw(screen)
     bullet_group.draw(screen)
     enemy_group.draw(screen)
+    FRAME = (FRAME + 1) % MAX_BULLET_SPEED
     pygame.display.flip()
     clock.tick(FPS)
 terminate()
