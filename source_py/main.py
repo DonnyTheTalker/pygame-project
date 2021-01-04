@@ -6,7 +6,7 @@ import inspect
 
 pygame.init()
 SIZE = WIDTH, HEIGHT = 800, 600
-FPS = 15
+FPS = 20
 
 screen = pygame.display.set_mode(SIZE)
 clock = pygame.time.Clock()
@@ -44,8 +44,7 @@ class SpriteStates:
     FALLING = "2falling"
     JUMPING = "3jumping"
     MOVING = "4moving right"
-    SLIDING = "5sliding left"
-    DEAD = "8dead"
+    SLIDING = "5sliding right"
 
     @staticmethod
     def get_states():
@@ -67,15 +66,22 @@ class AnimatedSprite(pygame.sprite.Sprite):
         super().__init__(all_sprites, *groups)
         self.direction = True
         self.status = None
+        self.width = 49
+        self.height = 64
         self.current_sprite = 0
+        self.rect = pygame.Rect(x, y, self.width, self.height)
         self.sprites = dict()
         # Создаем ассоциативный массив спрайтов
         # Для каждого состояния анимации
         for state in SpriteStates.get_states():
             self.sprites[state] = list()
         self.slice_sprites(load_image(spritesheet))
+        # self.width = max(max(sprite.get_width() for sprite in self.sprites[state])
+        #                  for state in self.sprites)
+        self.height = max(max(sprite.get_height() for sprite in self.sprites[state])
+                          for state in self.sprites)
+        self.rect.width, self.rect.height = self.width, self.height
         self.set_status(SpriteStates.IDLE)
-        self.rect = self.image.get_rect().move(x, y)
 
     def update(self):
         # Добавить контроль длительности анимации
@@ -84,15 +90,39 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
     def set_status(self, status, direction=True):
         """Смена режима анимации"""
-        self.status = status
-        self.direction = direction
-        self.current_sprite = 0
-        self.update_sprite()
+        if status != self.status or direction != self.direction:
+            self.status = status
+            self.direction = direction
+            self.current_sprite = 0
+            self.width = max(max([sprite.get_width() for sprite in self.sprites[self.status]] +
+                                 [0]), 0)
+            self.update_sprite()
 
     def update_sprite(self):
         """Изменение текущего спрайта"""
         self.image = self.sprites[self.status][self.current_sprite]
         self.image = pygame.transform.flip(self.image, not self.direction, False)
+        surface = pygame.Surface((self.rect.width, self.rect.height))
+        surface.fill((255, 255, 255, 0))
+        surface.set_colorkey((255, 255, 255))
+        if self.status in [SpriteStates.SLIDING, SpriteStates.MOVING] or True:
+            surface.blit(self.image,
+                         (self.rect.width - self.image.get_width()
+                          if ((self.direction and self.status != SpriteStates.SLIDING) or
+                              (not self.direction and self.status == SpriteStates.SLIDING))
+                          else 0,
+                          self.height - self.image.get_height()))
+        elif self.status == SpriteStates.MOVING:
+            surface.blit(self.image,
+                         (self.rect.width - self.width if self.direction
+                          else 0,
+                          self.height - self.image.get_height()))
+        else:
+            surface.blit(self.image,
+                         ((self.rect.width - self.width) // 2,
+                          self.height - self.image.get_height()))
+
+        self.image = surface
 
     def slice_sprites(self, spritesheet):
         """Генерирует сетку спрайтов, найденных в spritesheet"""
@@ -130,12 +160,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
                 break
 
 
-class PlayerSprite(AnimatedSprite):
-    def __init__(self, spritesheet, x, y):
-        super().__init__(spritesheet, x, y)
-
-
-class Player(PlayerSprite):
+class Player(AnimatedSprite):
     def __init__(self, spritesheet, x, y):
         super().__init__(spritesheet, x, y)
         self.health_points = 3
@@ -156,22 +181,25 @@ class HP(pygame.sprite.Sprite):
             screen.blit(self.image, (self.x + self.offset * i + self.image.w * i, self.y))
 
 
-running = True
-for i, state in enumerate(SpriteStates.get_states()):
-    if i < 4:
-        player = Player("player_spritesheet.png", 40 + i * 70, 40)
-        player.set_status(state)
-        player = Player("player_spritesheet.png", 40 + i * 70, 150)
-        player.set_status(state, False)
+if __name__ == "__main__":
+    running = True
+    for i, state in enumerate(SpriteStates.get_states()):
+        if i < 5:
+            player = Player("player_spritesheet.png", 40 + i * 70, 40)
+            player.set_status(state)
+            player = Player("player_spritesheet.png", 40 + i * 70, 150)
+            player.set_status(state, False)
 
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-    delay = clock.tick(FPS)
-    screen.fill(pygame.Color("white"))
-    all_sprites.draw(screen)
-    all_sprites.update()
-    # player.draw_hp(screen) - отрисовка хп
-    pygame.display.flip()
-terminate()
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+        delay = clock.tick(FPS)
+        screen.fill(pygame.Color("white"))
+        for sprite in all_sprites.sprites():
+            pygame.draw.rect(screen, "red", sprite.rect)
+        all_sprites.update()
+        all_sprites.draw(screen)
+        # player.draw_hp(screen) - отрисовка хп
+        pygame.display.flip()
+    terminate()
