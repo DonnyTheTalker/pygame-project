@@ -96,39 +96,12 @@ class Collision:
         return collision_detected
 
 
-class Unit(AnimatedSprite):
+class Player(AnimatedSprite):
     LEFT = -1
     RIGHT = 1
 
-    def __init__(self, spritesheet, x, y, *groups):
-        super().__init__(spritesheet, x, y, *groups)
-
-    def setup_movemet(self):
-        pass
-
-    def update_movement(self):
-        pass
-
-    def move(self):
-        pass
-
-    def update_status(self, is_sliding, in_air, cur_rotation, falling, moving):
-        if is_sliding and in_air:
-            super().set_status(SpriteStates.SLIDING, not cur_rotation == Unit.RIGHT)
-        elif in_air:
-            if falling:
-                super().set_status(SpriteStates.FALLING, cur_rotation == Unit.RIGHT)
-            else:
-                super().set_status(SpriteStates.JUMPING, cur_rotation == Unit.RIGHT)
-        elif moving:
-            super().set_status(SpriteStates.MOVING, cur_rotation == Unit.RIGHT)
-        else:
-            super().set_status(SpriteStates.IDLE, cur_rotation == Unit.RIGHT)
-
-
-class Player(Unit):
     def __init__(self, x, y):
-        super().__init__(player_spritesheet, x * tile_width, y * tile_height, (player_sprites,))
+        super().__init__(player_spritesheet, x * tile_width, y * tile_height, all_sprites, player_sprites)
         self.setup_movement()
 
     # Базовые параметры физики персонажа
@@ -143,7 +116,7 @@ class Player(Unit):
         self.sliding_left, self.sliding_right = False, False
 
         self.jump_count = 2
-        self.cur_rotation = Unit.RIGHT
+        self.cur_rotation = Player.RIGHT
 
         self.is_sliding = False
         self.in_air = False
@@ -243,6 +216,14 @@ class Player(Unit):
                 self.is_sliding = False
                 self.has_extra_jump = False
                 self.velocity[1] = min(self.velocity[1], self.max_speed_sliding[1])
+            offset = 3
+            if not Collision.get_collision(self.rect.move(-offset, 0), tile_sprites):
+                # здесь -1 в self.rect.move - это к-во пикселей, на которое должен уйти от стены игрок, чтобы забыть про его скольжение по ней
+                # Если не касается левой стороной тайла
+                self.sliding_left = False
+            if not Collision.get_collision(self.rect.move(offset, 0), tile_sprites):
+                # Если не касается правой стороной тайла
+                self.sliding_right = False
 
         # При столкновении с потолком - обнуляем вертикальное ускорение
         if collision["top"]:
@@ -261,10 +242,10 @@ class Player(Unit):
                 # Также начианем движение персонажа в соответствующую сторону
                 if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
                     self.moving_right = True
-                    self.cur_rotation = Unit.RIGHT
+                    self.cur_rotation = Player.RIGHT
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
                     self.moving_left = True
-                    self.cur_rotation = Unit.LEFT
+                    self.cur_rotation = Player.LEFT
                 # При попытке прыжка - проверяем на наличие дополнительного прыжка (при скольжении)
                 # Или при наличии второго прыжка (self.jump_count)
                 elif event.key == pygame.K_UP or pygame.key == pygame.K_w:
@@ -284,6 +265,19 @@ class Player(Unit):
     # Класса - AnimatedSprite
     def animate(self):
         AnimatedSprite.update(self)
+
+    def update_status(self, is_sliding, in_air, cur_rotation, falling, moving):
+        if is_sliding and in_air:
+            super().set_status(SpriteStates.SLIDING, not cur_rotation == Player.RIGHT)
+        elif in_air:
+            if falling:
+                super().set_status(SpriteStates.FALLING, cur_rotation == Player.RIGHT)
+            else:
+                super().set_status(SpriteStates.JUMPING, cur_rotation == Player.RIGHT)
+        elif moving:
+            super().set_status(SpriteStates.MOVING, cur_rotation == Player.RIGHT)
+        else:
+            super().set_status(SpriteStates.IDLE, cur_rotation == Player.RIGHT)
 
 
 # На удаление
@@ -327,6 +321,7 @@ while running:
     delay = clock.tick(FPS)
     screen.blit(background, (0, 0))
     tile_sprites.draw(screen)
+    pygame.draw.rect(screen, pygame.Color("red"), p.rect)
     player_sprites.draw(screen)
     pygame.display.flip()
 

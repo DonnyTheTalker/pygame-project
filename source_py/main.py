@@ -12,6 +12,7 @@ screen = pygame.display.set_mode(SIZE)
 clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
 tiles_sprites = pygame.sprite.Group()
+player_sprites = pygame.sprite.Group()
 
 
 def terminate():
@@ -36,7 +37,7 @@ def load_image(name, colorkey=None):
     return image
 
 
-HP_SPRITE = load_image("spritesheet1.png")
+# HP_SPRITE = load_image("spritesheet1.png")
 
 
 class SpriteStates:
@@ -55,27 +56,27 @@ class SpriteStates:
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, image, x, y):
-        super().__init__(all_sprites, tiles_sprites)
-        self.image = load_image(image)
+    def __init__(self, image, x, y, *groups):
+        super().__init__(*groups)
+        self.image = image
         self.rect = self.image.get_rect().move(x, y)
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, spritesheet, x, y, *groups):
-        super().__init__(all_sprites, *groups)
+        super().__init__(*groups)
         self.direction = True
         self.status = None
-        self.width = 49
-        self.height = 64
-        self.current_sprite = 0
-        self.rect = pygame.Rect(x, y, self.width, self.height)
         self.sprites = dict()
         # Создаем ассоциативный массив спрайтов
         # Для каждого состояния анимации
         for state in SpriteStates.get_states():
             self.sprites[state] = list()
         self.slice_sprites(load_image(spritesheet))
+        self.width = 49
+        self.height = 64
+        self.current_sprite = 0
+        self.rect = pygame.Rect(x, y, self.width, self.height)
         # self.width = max(max(sprite.get_width() for sprite in self.sprites[state])
         #                  for state in self.sprites)
         self.height = max(max(sprite.get_height() for sprite in self.sprites[state])
@@ -105,22 +106,11 @@ class AnimatedSprite(pygame.sprite.Sprite):
         surface = pygame.Surface((self.rect.width, self.rect.height))
         surface.fill((255, 255, 255, 0))
         surface.set_colorkey((255, 255, 255))
-        if self.status in [SpriteStates.SLIDING, SpriteStates.MOVING] or True:
-            surface.blit(self.image,
-                         (self.rect.width - self.image.get_width()
-                          if ((self.direction and self.status != SpriteStates.SLIDING) or
-                              (not self.direction and self.status == SpriteStates.SLIDING))
-                          else 0,
-                          self.height - self.image.get_height()))
-        elif self.status == SpriteStates.MOVING:
-            surface.blit(self.image,
-                         (self.rect.width - self.width if self.direction
-                          else 0,
-                          self.height - self.image.get_height()))
-        else:
-            surface.blit(self.image,
-                         ((self.rect.width - self.width) // 2,
-                          self.height - self.image.get_height()))
+        surface.blit(self.image,
+                     (self.rect.width - self.image.get_width()
+                      if ((self.direction and self.status != SpriteStates.SLIDING) or
+                          (not self.direction and self.status == SpriteStates.SLIDING)) else 0,
+                      self.height - self.image.get_height()))
 
         self.image = surface
 
@@ -161,10 +151,11 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 
 class Player(AnimatedSprite):
-    def __init__(self, spritesheet, x, y):
-        super().__init__(spritesheet, x, y)
+    def __init__(self, spritesheet, x, y, *groups):
+        super().__init__(spritesheet, x, y, *groups)
         self.health_points = 3
-        self.hp = HP(10, 10, 10)
+
+    #        self.hp = HP(10, 10, 10)
 
     def draw_hp(self, screen):
         self.hp.draw_hp(screen, self.health_points)
@@ -185,9 +176,9 @@ if __name__ == "__main__":
     running = True
     for i, state in enumerate(SpriteStates.get_states()):
         if i < 5:
-            player = Player("player_spritesheet.png", 40 + i * 70, 40)
+            player = Player("player_spritesheet.png", 40 + i * 70, 40, all_sprites, player_sprites)
             player.set_status(state)
-            player = Player("player_spritesheet.png", 40 + i * 70, 150)
+            player = Player("player_spritesheet.png", 40 + i * 70, 150, all_sprites, player_sprites)
             player.set_status(state, False)
 
     while running:
