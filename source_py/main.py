@@ -36,7 +36,7 @@ def load_image(name, colorkey=None):
     return image
 
 
-HP_SPRITE = load_image("spritesheet1.png")
+# HP_SPRITE = load_image("spritesheet1.png")
 
 
 class SpriteStates:
@@ -55,9 +55,9 @@ class SpriteStates:
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, image, x, y):
-        super().__init__(all_sprites, tiles_sprites)
-        self.image = load_image(image)
+    def __init__(self, image, x, y, *groups):
+        super().__init__(*groups)
+        self.image = image
         self.rect = self.image.get_rect().move(x, y)
 
 
