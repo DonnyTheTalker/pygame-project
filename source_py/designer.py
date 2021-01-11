@@ -1,44 +1,54 @@
 import sys
 import pygame
 import os
-from PyQt5 import uic, QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QLCDNumber, QButtonGroup
-from PyQt5.QtWidgets import QCheckBox, QMainWindow
+from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
+from PyQt5.QtWidgets import QMainWindow, QFileDialog
 from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QIcon, QPixmap, QImage
-from PyQt5 import QtWidgets
 from main import load_image, Tile
 
+pygame.init()
 
-def cut_sheets(sheet, cell_size, columns, rows):
+
+def cut_sheets(sheet, names, cell_size, columns, rows):
     rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
     frames = list()
     for j in range(rows):
         for i in range(columns):
             frame_coords = rect.w * i, rect.h * j
-            frames.append(pygame.transform.scale(sheet.subsurface(pygame.Rect(frame_coords, rect.size)),
+            frames.append(pygame.transform.scale(sheet.subsurface(pygame.Rect(frame_coords,
+                                                                              rect.size)),
                                                  (cell_size, cell_size)))
-    return frames
+    tiles = dict()  # словарь surface tile по его кодовому символу
+    for i, tile_image in enumerate(frames):
+        tiles[names[i]] = tile_image
+    reversed_tiles = {sprite: key for key, sprite in tiles.items()}
+    return tiles, reversed_tiles
+
+
+def load_sprites_from_grid(tiles, names, cell_size, grid_width, grid_height, grid, *groups):
+    for i, line in enumerate(grid):
+        for j, symb in enumerate(line):
+            if symb != '.':
+                Tile(tiles[symb], j * cell_size, i * cell_size, *groups)
 
 
 class Main(QMainWindow):
-    def __init__(self):
+    def __init__(self, spritesheet):
         super().__init__()
         pygame.init()
         # self.setupUi(self)
         uic.loadUi("../data/UI files/designer.ui", self)
+        self.spritesheet = load_image(spritesheet)
         self.CELL_SIZE = 32
         self.all_sprites = pygame.sprite.Group()
         self.background_group = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
         self.frontground_group = pygame.sprite.Group()
         self.layer = self.tiles_group
-        self.display_mode = [self.background_group, self.tiles_group, self.frontground_group]
         self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"  # кодовые символы
-        self.tiles = dict()  # словарь surface tile по его кодовому символу
-        for i, tile_image in enumerate(cut_sheets(load_image("forest_spritesheet.png"), self.CELL_SIZE, 10, 4)):
-            self.tiles[self.names[i]] = tile_image
-        self.reversed_tiles = {image: key for key, image in self.tiles.items()}
+        self.tiles, self.reversed_tiles = cut_sheets(self.spritesheet, self.names,
+                                                     self.CELL_SIZE, 10, 4)
         self.initUI()
         self.resize_window()
         self.timer.start(10)
@@ -46,16 +56,18 @@ class Main(QMainWindow):
     def initUI(self):
         y_offset = self.height()
         self.resizeButton.clicked.connect(self.resize_window)
-        self.saveButton.clicked.connect(self.save)
         self.arrows.buttonClicked.connect(self.move_surface)
         self.layerButtons.buttonClicked.connect(self.change_layer)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_events)
+        self.actionopen.triggered.connect(self.open)
+        self.actionsave.triggered.connect(self.save)
         self.tile_buttons = QButtonGroup(self)
         for i, tile_code in enumerate(self.tiles):
             button = QPushButton(tile_code, self)
             button.resize(self.CELL_SIZE, self.CELL_SIZE)
-            button.move(20 + i % 10 * (self.CELL_SIZE + 10), y_offset + i // 10 * (self.CELL_SIZE + 10))
+            button.move(20 + i % 10 * (self.CELL_SIZE + 10),
+                        y_offset + i // 10 * (self.CELL_SIZE + 10))
             self.tile_buttons.addButton(button)
         self.setFixedSize(20 + 10 * (self.CELL_SIZE + 10),
                           y_offset + i // 10 * (self.CELL_SIZE + 10) + button.height() + 10)
@@ -150,6 +162,12 @@ class Main(QMainWindow):
         if not name:
             return
         os.mkdir(f'../data/levels/{name}')
+        with open(f'../data/levels/{name}/info.txt', 'w', encoding='utf-8') as file:
+            params = ["spritesheet", "CELL_SIZE", "grid_width", "grid_height", "names"]
+            file.write(" ".join(params) + '\n')
+            for parameter in params:
+                exec(f'self._temp = self.{parameter}')
+                file.write(str(self._temp) + '\n')
         for layer in ["background", "tiles", "frontground"]:
             with open(f'../data/levels/{name}/{layer}.txt', 'w', encoding='utf-8') as file:
                 grid = [["."] * self.grid_width for i in range(self.grid_height)]
@@ -159,9 +177,23 @@ class Main(QMainWindow):
                     grid[y][x] = self.reversed_tiles[sprite.image]
                 file.write("\n".join("".join(line) for line in grid))
 
+    def open(self):
+        for sprite in self.all_sprites.sprites():
+            sprite.kill()
+        self.tiles, self.reversed_tiles = cut_sheets(self.spritesheet, self.names, self.CELL_SIZE,
+                                                     10, 4)
+        path = QFileDialog.getOpenFileName(self, 'Выбрать уровень', '')[0].split("/")[-2]
+        for layer in ["background", "tiles", "frontground"]:
+            with open(f'../data/levels/{path}/{layer}.txt', 'r', encoding='utf-8') as file:
+                grid = [list(line.strip()) for line in file.readlines()]
+                query = ("load_sprites_from_grid(self.tiles, self.names," +
+                         " self.CELL_SIZE, self.grid_width," +
+                         f" self.grid_height, grid, self.all_sprites, self.{layer}_group)")
+                exec(query)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    ex = Main()
+    ex = Main("forest_spritesheet.png")
     ex.show()
     sys.exit(app.exec())

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>424</width>
+    <width>420</width>
     <height>155</height>
    </rect>
   </property>
@@ -82,7 +82,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>120</y>
+      <y>110</y>
       <width>131</width>
       <height>17</height>
      </rect>
@@ -94,32 +94,55 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QWidget" name="gridLayoutWidget">
+   <widget class="QCheckBox" name="gridMode">
+    <property name="geometry">
+     <rect>
+      <x>160</x>
+      <y>110</y>
+      <width>70</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Сетка</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QWidget" name="verticalLayoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>10</y>
-      <width>264</width>
-      <height>61</height>
+      <width>281</width>
+      <height>101</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Имя уровня:</string>
-       </property>
-      </widget>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Имя уровня:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="nameEdit"/>
+       </item>
+      </layout>
      </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Размеры уровня: </string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Размеры уровня: </string>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QSpinBox" name="widthBox">
          <property name="minimum">
@@ -146,84 +169,50 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QPushButton" name="resizeButton">
+         <property name="text">
+          <string>resize</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="nameEdit"/>
-     </item>
-     <item row="0" column="2">
-      <widget class="QPushButton" name="saveButton">
-       <property name="text">
-        <string>Сохранить</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="2">
-      <widget class="QPushButton" name="resizeButton">
-       <property name="text">
-        <string>resize</string>
-       </property>
-      </widget>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QPushButton" name="pushButton">
+         <property name="text">
+          <string>background</string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">layerButtons</string>
+         </attribute>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_2">
+         <property name="text">
+          <string>tiles</string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">layerButtons</string>
+         </attribute>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_3">
+         <property name="text">
+          <string>frontground</string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">layerButtons</string>
+         </attribute>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
-   </widget>
-   <widget class="QWidget" name="horizontalLayoutWidget_2">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>70</y>
-      <width>261</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <item>
-      <widget class="QPushButton" name="pushButton">
-       <property name="text">
-        <string>background</string>
-       </property>
-       <attribute name="buttonGroup">
-        <string notr="true">layerButtons</string>
-       </attribute>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton_2">
-       <property name="text">
-        <string>tiles</string>
-       </property>
-       <attribute name="buttonGroup">
-        <string notr="true">layerButtons</string>
-       </attribute>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton_3">
-       <property name="text">
-        <string>frontground</string>
-       </property>
-       <attribute name="buttonGroup">
-        <string notr="true">layerButtons</string>
-       </attribute>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-   <widget class="QCheckBox" name="gridMode">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>120</y>
-      <width>70</width>
-      <height>17</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Сетка</string>
-    </property>
-    <property name="checked">
-     <bool>true</bool>
-    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -231,12 +220,30 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>424</width>
+     <width>420</width>
      <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menufile">
+    <property name="title">
+     <string>file</string>
+    </property>
+    <addaction name="actionopen"/>
+    <addaction name="actionsave"/>
+   </widget>
+   <addaction name="menufile"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionopen">
+   <property name="text">
+    <string>open</string>
+   </property>
+  </action>
+  <action name="actionsave">
+   <property name="text">
+    <string>save</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
