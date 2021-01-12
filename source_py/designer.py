@@ -1,6 +1,8 @@
 import sys
 import pygame
 import os
+import pickle
+import json
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
@@ -89,14 +91,6 @@ class Main(QMainWindow):
     def change_layer(self, button):
         query = f'self.layer = self.{button.text()}_group'
         exec(query)
-        if self.layer is self.background_group:
-            print("Выбрал background")
-        elif self.layer is self.tiles_group:
-            print("Выбрал tiles")
-        elif self.layer is self.frontground_group:
-            print("Выбрал frontground")
-        else:
-            print("Ачё я выбрал?")
 
     def select_tile(self, button):
         self.current_tile = button.text()
@@ -161,7 +155,9 @@ class Main(QMainWindow):
         name = self.nameEdit.text()
         if not name:
             return
-        os.mkdir(f'../data/levels/{name}')
+        print(json.dumps(self, cls=MainEncoder))
+        if not os.path.exists(f'../data/levels/{name}'):
+            os.mkdir(f'../data/levels/{name}')
         with open(f'../data/levels/{name}/info.txt', 'w', encoding='utf-8') as file:
             params = ["spritesheet", "CELL_SIZE", "grid_width", "grid_height", "names"]
             file.write(" ".join(params) + '\n')
@@ -190,6 +186,48 @@ class Main(QMainWindow):
                          " self.CELL_SIZE, self.grid_width," +
                          f" self.grid_height, grid, self.all_sprites, self.{layer}_group)")
                 exec(query)
+
+
+class MainEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Main):
+            return {"__Level__": True,
+                    "names": o.names,
+                    "background_group": o.background_group.sprites()}
+        elif isinstance(o, Tile):
+            return {"__Tile__": True,
+                    "image": json.dumps(o.image, cls=MainEncoder),
+                    "x": o.rect.x,
+                    "y": o.rect.y}
+        elif isinstance(o, pygame.Surface):
+            width, height = o.get_width(), o.get_height()
+            pixels = [[o.get_at((i, j)) for j in range(height)] for i in range(width)]
+            print(pixels)
+            return {"__Surface__": True,
+                    "width": width, "height": height, "pixels": pixels}
+        elif isinstance(o, pygame.Color):
+            return {"__Color__": True,
+                    "rgba": (o.r, o.g, o.b, o.a)}
+        else:
+            json.JSONEncoder.default(self, o)
+
+
+def main_decoder(dct):
+    if "__Level__" in dct:
+        # генерируем Main
+        return
+    elif "__Tile__" in dct:
+        return Tile(dct["image"], dct["x"], dct["y"])
+    elif "__Surface__" in dct:
+        surf = pygame.Surface((dct["width"], dct["height"]))
+        for i in range(dct["width"]):
+            for j in range(dct["height"]):
+                surf.set_at((i, j), pygame.Color(dct["pixels"][i][j]))
+        return surf
+    elif "__Color__" in dct:
+        return pygame.Color(*dct["rgba"])
+    else:
+        return dct
 
 
 if __name__ == "__main__":
