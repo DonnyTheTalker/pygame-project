@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>420</width>
+    <width>400</width>
     <height>155</height>
    </rect>
   </property>
@@ -149,7 +149,7 @@
           <number>1</number>
          </property>
          <property name="maximum">
-          <number>128</number>
+          <number>64</number>
          </property>
          <property name="value">
           <number>16</number>
@@ -162,7 +162,7 @@
           <number>1</number>
          </property>
          <property name="maximum">
-          <number>128</number>
+          <number>40</number>
          </property>
          <property name="value">
           <number>16</number>
@@ -220,7 +220,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>420</width>
+     <width>400</width>
      <height>21</height>
     </rect>
    </property>
@@ -248,7 +248,7 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="arrows"/>
   <buttongroup name="layerButtons"/>
+  <buttongroup name="arrows"/>
  </buttongroups>
 </ui>

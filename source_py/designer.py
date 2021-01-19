@@ -6,8 +6,7 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
 from PyQt5.QtCore import QTimer
-from main import load_image, Tile
-from level import Level, MainEncoder, main_decoder
+from main import load_image, Tile, Level, MainEncoder, main_decoder
 
 pygame.init()
 
@@ -67,7 +66,7 @@ class Main(QMainWindow):
             button.move(20 + i % 10 * (self.level.CELL_SIZE + 10),
                         y_offset + i // 10 * (self.level.CELL_SIZE + 10))
             self.tile_buttons.addButton(button)
-        self.setFixedSize(20 + 10 * (self.level.CELL_SIZE + 10),
+        self.setFixedSize(max(self.width(), 20 + 10 * (self.level.CELL_SIZE + 10)),
                           y_offset + i // 10 * (self.level.CELL_SIZE + 10) + button.height() + 10)
         self.tile_buttons.buttonClicked.connect(self.select_tile)
         self.tile_buttons.buttons()[0].click()
@@ -102,9 +101,9 @@ class Main(QMainWindow):
     def check_events(self):
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
+                if event.button == 1 or event.button == 4:
                     self.add_sprite(event.pos)
-                elif event.button == 3:
+                elif event.button == 3 or event.button == 5:
                     self.del_sprite(event.pos)
         self.paint()
 
@@ -155,7 +154,7 @@ class Main(QMainWindow):
         if not name:
             print("Ошибка ввода имени")
             return
-        with open(f'../data/level/{name}.json', 'w', encoding='utf-8') as file:
+        with open(f'../data/levels/{name}.json', 'w', encoding='utf-8') as file:
             json.dump(self.level, file, cls=MainEncoder)
 
     def open(self):
@@ -167,6 +166,7 @@ class Main(QMainWindow):
             self.level = json.load(file, object_hook=main_decoder)
         self.tiles, self.reversed_tiles = cut_sheets(self.spritesheet, self.names,
                                                      self.level.CELL_SIZE, 10, 4)
+        self.layer = self.level.tiles_group
 
 
 if __name__ == "__main__":
