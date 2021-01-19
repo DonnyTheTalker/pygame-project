@@ -4,6 +4,7 @@ import sys
 import inspect
 import time
 from copy import deepcopy
+from math import sin, cos
 
 pygame.init()
 WIDTH, HEIGHT = 1050, 750
@@ -14,10 +15,12 @@ tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
+obstacles_group = pygame.sprite.Group()
 FPS = 60
 STEP = 50
 FRAME = 0
 MAX_BULLET_SPEED = 5
+LAST_HIT_TIME = 0
 
 
 def load_image(name, colorkey=None):
@@ -35,6 +38,22 @@ def load_image(name, colorkey=None):
     else:
         image = image.convert_alpha()
     return image
+
+
+def get_damage(damage):
+    global LAST_HIT_TIME
+    if time.time() - LAST_HIT_TIME >= 1.5:
+        LAST_HIT_TIME = time.time()
+        player.hp -= damage
+        if player.hp > 0:
+            pass
+            # player.status = SpriteStates.GET_DAMAGE
+            # player.update()
+        else:
+            player.kill()
+            print("Убили!")
+            # Game over
+
 
 
 # Shooting
@@ -92,6 +111,16 @@ def real_coords(coord, x=False, y=False):
             return coord * tile_height
 
 
+def update_addition_center(unit):
+    addition_y = unit.rect.centery // tile_height * tile_height + tile_height // 2 - unit.rect.centery
+    addition_x = unit.rect.centerx // tile_width * tile_width + tile_width // 2 - unit.rect.centerx
+    return addition_x, addition_y
+
+
+def update_addition_all(width, height):
+    return tile_width - width, tile_height - height
+
+
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, spritesheet, x, y, *groups):
         super().__init__(all_sprites, *groups)
@@ -105,7 +134,10 @@ class AnimatedSprite(pygame.sprite.Sprite):
             self.sprites[state] = list()
         self.slice_sprites(load_image(spritesheet))
         self.set_status(SpriteStates.IDLE)
+        self.image = self.sprites[self.status][self.current_sprite]
+        self.image = pygame.transform.flip(self.image, not self.direction, False)
         self.rect = self.image.get_rect().move(x, y)
+        self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
         # Добавить контроль длительности анимации
@@ -123,6 +155,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
         """Изменение текущего спрайта"""
         self.image = self.sprites[self.status][self.current_sprite]
         self.image = pygame.transform.flip(self.image, not self.direction, False)
+        self.mask = pygame.mask.from_surface(self.image)
 
     def slice_sprites(self, spritesheet):
         """Генерирует сетку спрайтов, найденных в spritesheet"""
@@ -174,11 +207,7 @@ class Player(pygame.sprite.Sprite):
         self.image = player_image
         self.hp = 3
         self.rect = self.image.get_rect().move(pos_x * tile_width + 15, pos_y * tile_height + 5)
-
-    def update(self):
-        if not self.hp:
-            print("Убили!")
-            self.kill()
+        self.mask = pygame.mask.from_surface(self.image)
 
 
 class MovingEnemy(AnimatedSprite):
@@ -193,9 +222,11 @@ class MovingEnemy(AnimatedSprite):
         self.state = deepcopy(self.all_states[0])
         self.state_number = 0
         self.point_number = 0
-        self.last_time = time.time()
         self.side_point = 1
         self.side_state = 1
+        self.set_status(self.all_states[0][0])
+        self.rect.center = (x * tile_width + tile_width // 2, y * tile_height + tile_height // 2)
+        self.addition_x, self.addition_y = update_addition_center(self)
 
     def generate_states(self):
         for i in range(1, len(self.points)):
@@ -255,14 +286,17 @@ class MovingEnemy(AnimatedSprite):
     def update(self):
         self.rect.x += int(self.state[1][0] * self.speed)
         self.rect.y += int(self.state[1][1] * self.speed)
-        self.image.get_rect().move(self.rect.x, self.rect.y)
+        self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
         collisions = pygame.sprite.spritecollideany(self, player_group)
         if collisions:
-            if time.time() - self.last_time > 1.5:
-                self.last_time = time.time()
-                collisions.hp -= 1
+            get_damage(self.damage)
         self.check_state()
         super().update()
+        self.addition_x, self.addition_y = update_addition_center(self)
+        if self.state[0] == SpriteStates.JUMPING:
+            self.rect = self.image.get_rect().move(self.rect.x + self.addition_x, self.rect.y)
+        elif self.state[0] == SpriteStates.MOVING:
+            self.rect = self.image.get_rect().move(self.rect.x, self.rect.y + self.addition_y)
 
 
 class StaticEnemies(AnimatedSprite):
@@ -272,78 +306,126 @@ class StaticEnemies(AnimatedSprite):
 
 
 class ShootingEnemy(StaticEnemies):
-    def __init__(self, x, y, damage, spritesheet, bullet_image, all_sides=None):
+    def __init__(self, x, y, damage, spritesheet, bullet_image, bullet_speed=1,
+                 all_sides=None, smart=False):
         super().__init__(x, y, damage, spritesheet)
         if all_sides is None:
-            all_sides = [EAST, SE, SOUTH, SW, WEST, NW, NORTH, NE]
+            all_sides = [EAST]
+        self.smart = smart
         self.bullet_image = bullet_image
         self.all_sides = all_sides
-        self.last_time = 0
-        self.last_hit_time = 0
         self.last_shoot_time = 0
+        self.bullet_speed = bullet_speed
+        self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
+        self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
+                                               self.rect.y + self.addition_y)
 
     def update(self):
         if time.time() - self.last_shoot_time > 10:
             self.last_shoot_time = time.time()
-            for i in self.all_sides:
-                SmartBullet(self.rect.x, self.rect.y, self.bullet_image, 1, 1)
+            if not self.smart:
+                for i in self.all_sides:
+                    Bullet(self.rect.x, self.rect.y, self.bullet_speed, self.damage, "bat2.png")
+            else:
+                SmartBullet(self.rect.x, self.rect.y, self.bullet_speed, self.damage, "bat2.png")
         collisions = pygame.sprite.spritecollideany(self, player_group)
         if collisions:
-            if time.time() - self.last_hit_time > 1.5:
-                self.last_hit_time = time.time()
-                collisions.hp -= 1
+            get_damage(self.damage)
         super().update()
 
 
-class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, image, speed, damage, sides=None, is_friendly=False):
-        super().__init__(all_sprites, bullet_group)
+class HATEnemy(AnimatedSprite):
+    def __init__(self, spritesheet, x, y, damage, speed):
+        super().__init__(spritesheet, x * tile_width, y * tile_height, enemy_group)
+        self.damage = damage
+        self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
+        self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
+                                               self.rect.y + self.addition_y)
+        self.speed = speed
+        self.set_status(SpriteStates.MOVING, True if self.speed > 0 else False)
+        self.gravity = 5
+
+    def get_collisions(self):
+        return pygame.sprite.spritecollide(self, tiles_group, False)
+
+    def hat(self):
+        collisions = self.get_collisions()
+        if collisions:
+            for collision in collisions:
+                if collision.type == "wall":
+                    self.speed *= -1
+                    self.rect = self.image.get_rect().move(self.rect.x + self.speed, self.rect.y)
+                    self.set_status(self.status, True if self.speed > 0 else False)
+                    break
+
+    def gravitation(self):
+        self.rect = self.image.get_rect().move(self.rect.x, self.rect.y + self.gravity)
+        collisions = self.get_collisions()
+        if collisions:
+            for collision in collisions:
+                if collision.type == "wall":
+                    self.rect = self.image.get_rect().move(self.rect.x, self.rect.y - self.gravity)
+                    break
+
+    def update(self):
+        self.hat()
+        self.gravitation()
+        if pygame.sprite.spritecollideany(self, player_group):
+            get_damage(self.damage)
+        self.rect = self.image.get_rect().move(self.rect.x + self.speed, self.rect.y)
+        self.gravity = 0
+        super().update()
+
+
+class HATSaw(HATEnemy):
+    def __init__(self, spritesheet, x, y, damage, speed):
+        super().__init__(spritesheet, x, y, damage, speed)
+        self.set_status(SpriteStates.IDLE, True if self.speed > 0 else False)
+
+    def update(self):
+        super().update()
+
+
+class Bullet(AnimatedSprite):
+    def __init__(self, x, y, speed, damage, spritesheet, sides=None):
+        super().__init__(spritesheet, -100, -100, bullet_group)
+        self.rect = self.image.get_rect().move(x + tile_width // 2 - self.rect.width // 2,
+                                               y + tile_height // 2 - self.rect.height // 2)
         if sides is None:
             sides = [1, 1]
+        self.status = SpriteStates.IDLE
         self.damage = damage
-        self.image = image
-        self.rect = self.image.get_rect()
-        self.rect = self.rect.move(x + tile_width // 2 - self.rect.width // 2,
-                                   y + tile_height // 2 - self.rect.height // 2)
         self.side_x = sides[0]
         self.side_y = sides[1]
         self.speed_x = speed
         self.speed_y = speed
         self.last_time = 0
-        self.is_friendly = is_friendly
 
     def update(self):
         if self.speed_x > FRAME:
             self.rect.x += int(self.side_x)
         if self.speed_y > FRAME:
             self.rect.y += int(self.side_y)
-        self.image.get_rect().move(self.rect.x, self.rect.y)
-        if not self.is_friendly:
-            collides = pygame.sprite.spritecollideany(self, player_group)
-            if collides:
-                # Анимация взрыва
-                # Анимация неуязвимости
-                collides.hp -= self.damage
-                self.kill()
-        else:
-            collides = pygame.sprite.spritecollide(self, enemy_group, False)
-            for collide in collides:
-                # Анимация взрыва
-                collide.hp -= self.damage
-                self.kill()
+        self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
+        if pygame.sprite.collide_mask(self, player):
+            # Анимация взрыва
+            #self.status = SpriteStates.DEAD
+            #super().update()
+            get_damage(self.damage)
+            self.kill()
         collides = pygame.sprite.spritecollide(self, tiles_group, False)
         for collide in collides:
             if collide.type == "wall":
                 # Анимация взрыва
                 self.kill()
+        super().update()
 
 
 class SmartBullet(Bullet):
-    def __init__(self, x, y, image, speed, damage):
-        super().__init__(x, y, image, speed, damage)
+    def __init__(self, x, y, speed, damage, spritesheet):
+        super().__init__(x, y, speed, damage, spritesheet)
 
     def update(self):
-        diff_x, diff_y = 0, 0
         x = self.rect.x + self.rect.w // 2 - (player.rect.x + player.rect.w // 2)
         y = self.rect.y + self.rect.h // 2 - (player.rect.y + player.rect.h // 2)
         if x:
@@ -363,6 +445,73 @@ class SmartBullet(Bullet):
         self.speed_x = diff_x
         self.speed_y = diff_y
         super().update()
+
+
+class Obstacle(AnimatedSprite):
+    def __init__(self, x, y, damage, spritesheet):
+        super().__init__(spritesheet, x * tile_width, y * tile_height, obstacles_group)
+        if self.rect.height < tile_height:
+            self.image.get_rect().move(self.rect.x, self.rect.y + tile_height - self.rect.height)
+        self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
+        self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
+                                               self.rect.y + self.addition_y)
+        self.damage = damage
+
+    def update(self):
+        if pygame.sprite.collide_mask(self, player):
+            get_damage(self.damage)
+        super().update()
+
+
+class Saw(AnimatedSprite):
+    def __init__(self, x, y, damage, spritesheet):
+        super().__init__(spritesheet, x * tile_width,
+                         y * tile_height, obstacles_group)
+        self.damage = damage
+        self.rect.center = (x * tile_width + tile_width // 2, y * tile_height + tile_height // 2)
+
+    def update(self):
+        if pygame.sprite.collide_mask(self, player):
+            get_damage(self.damage)
+        super().update()
+
+
+class RotatingSaw(Saw):
+    def __init__(self, x, y, damage, length, spritesheet, speed=3, direction=1):
+        super().__init__(x * tile_width + tile_width // 2,
+                         y * tile_height + tile_height // 2, damage, spritesheet)
+        self.center_x = x * tile_width + tile_width // 2
+        self.center_y = -(y * tile_height + tile_height // 2)
+        self.length = max(length, 100)
+        self.x = self.center_x - length
+        self.y = -self.center_y
+        self.angle = 0
+        self.speed = speed
+        self.direction = direction
+
+    def update(self):
+        self.angle += 0.01 * self.speed * self.direction
+        if self.angle > 360:
+            self.angle = 0
+        elif self.angle < 0:
+            self.angle = 360
+        self.x = self.length * sin(self.angle) + self.center_x
+        self.y = -self.length * cos(self.angle) + self.center_y
+        self.draw_chain()
+        self.draw_base()
+        self.rect = self.image.get_rect().move(self.x - self.rect.w // 2,
+                                               -self.y - self.rect.h // 2)
+        super().update()
+
+    def draw_chain(self):
+        for i in range(0, self.length, 6):
+            pygame.draw.circle(screen, "black", ((self.length - i) * sin(self.angle)
+                                                 + self.center_x,
+                                                 -((-self.length + i) * cos(self.angle)
+                                                     + self.center_y)), 2)
+
+    def draw_base(self):
+        pygame.draw.rect(screen, "black", (self.center_x - 7, -self.center_y - 7, 14, 14), 0)
 
 
 def move_player(player_moved, move_type, last_x, last_y):
@@ -430,12 +579,20 @@ def generate_level(level):
                 new_player = Player(x, y)
             if level[y][x] == "R":
                 Tile("empty", x, y)
-                MovingEnemy(x, y, 1, 1, [[x, y], [6, 10], [6, 9], [7, 9], [7, 8], [8, 8],
-                                         [8, 3], [2, 3], [2, 4], [3, 4], [3, 9]],
-                            "spritesheet1.png")
+                MovingEnemy(x, y, 1, 1, [[x, y], [0, 13], [7, 13], [7, 5], [10, 5], [10, 13],
+                                         [8, 13], [8, 3], [13, 3], [13, 7], [10, 7]],
+                            "bag.png")
             if level[y][x] == "T":
                 Tile("empty", x, y)
-                ShootingEnemy(x, y, 1, "spritesheet1.png", bullet_image, [EAST])
+                ShootingEnemy(x, y, 1, "bag.png", bullet_image, 1, smart=True)
+            if level[y][x] == "S":
+                Tile("wall", x, y)
+                RotatingSaw(x, y, 3, 100, "bag.png", speed=3, direction=-1)
+                Saw(x, y, 3, "bag.png")
+                Obstacle(x + 1, y + 1, 3, "bag.png")
+            if level[y][x] == "H":
+                Tile("empty", x, y)
+                HATSaw("cats.png", x, y, 3, 2)
     return new_player, x, y
 
 
@@ -465,6 +622,8 @@ while running:
     player_group.draw(screen)
     bullet_group.draw(screen)
     enemy_group.draw(screen)
+    obstacles_group.update()
+    obstacles_group.draw(screen)
     FRAME = (FRAME + 1) % MAX_BULLET_SPEED
     pygame.display.flip()
     clock.tick(FPS)
