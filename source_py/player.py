@@ -1,6 +1,12 @@
 import pygame, os, sys, time
 from source_py.main import SpriteStates, AnimatedSprite
 
+background_sound = "../data/sounds/background.mp3"
+pygame.mixer.pre_init(44100, -16, 2, 512)
+pygame.mixer.music.load(background_sound)
+pygame.mixer.music.set_volume(50)
+pygame.mixer.music.play(-1)
+
 # Добавить константы стандартного ускорения, скорости, гравитации персонажа
 # Протестировать и посмотреть, чтобы динамика игры соответствовала этим скоростям
 # Добавить прыжки, отскоки от стен, подогнать их под (пока не существующую) систему анимаций
@@ -101,7 +107,8 @@ class Player(AnimatedSprite):
     RIGHT = 1
 
     def __init__(self, x, y):
-        super().__init__(player_spritesheet, x * tile_width, y * tile_height, all_sprites, player_sprites)
+        super().__init__(player_spritesheet, x * tile_width, y * tile_height, all_sprites,
+                         player_sprites)
         self.setup_movement()
 
     # Базовые параметры физики персонажа
