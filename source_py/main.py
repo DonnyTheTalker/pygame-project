@@ -38,6 +38,13 @@ obstacles_group = pygame.sprite.Group()
 player = None  # ссылка на действующего объекта класса Player
 
 
+background_sound = "../data/sounds/background.mp3"
+pygame.mixer.pre_init(44100, -16, 2, 512)
+pygame.mixer.music.load(background_sound)
+pygame.mixer.music.set_volume(50)
+pygame.mixer.music.play(-1)
+
+
 def terminate():
     pygame.quit()
     sys.exit()
