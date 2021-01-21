@@ -9,6 +9,8 @@ from math import sin, cos
 
 pygame.init()
 SIZE = WIDTH, HEIGHT = 800, 600
+MID_W = WIDTH // 2
+MID_H = HEIGHT // 2
 tile_width = tile_height = 32
 FPS = 20
 EAST = 0
@@ -27,8 +29,9 @@ FRAME = 0
 MAX_BULLET_SPEED = 5
 LAST_HIT_TIME = 0
 
+GAME_NAME = "Первый научный платформер"
 screen = pygame.display.set_mode(SIZE)
-pygame.display.set_caption("Первый научный платформер")
+pygame.display.set_caption(GAME_NAME)
 clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
 tiles_sprites = pygame.sprite.Group()
@@ -44,8 +47,18 @@ pygame.mixer.music.load(background_sound)
 pygame.mixer.music.set_volume(50)
 pygame.mixer.music.play(-1)
 
-MAIN_FONT = "arial"
+MAIN_FONT = pygame.font.get_default_font()
 FONT_COLOR = pygame.Color("white")
+
+START_OPTION = 0
+CREATE_LEVEL_OPTION = 1
+LOAD_LEVEL_OPTION = 2
+EXIT_OPTION = 3
+
+MENU_STAGE = 0
+LEVEL_CHOOSE_STAGE = 1
+LEVEL_CREATE_STAGE = 2
+LEVEL_LOAD_STAGE = 3
 
 
 def terminate():
@@ -75,7 +88,65 @@ def render_text(content, size, x, y):
     surface = font.render(content, True, FONT_COLOR)
     text = surface.get_rect()
     text.center = (x, y)
-    screen.blit(surface, (0, 0))
+    screen.blit(surface, text)
+
+
+class MainMenu:
+    def __init__(self):
+        self.cursor_pos = 0
+        self.cursor = '*'
+        self.cursor_size = 80
+        self.options = ["Начать игру", "Создать уровень", "Загрузить уровень", "Выйти"]
+        self.offset = 70
+        self.option_size = 30
+        self.cursor_x = 130
+        self.cursor_y = 240
+
+    def draw_cursor(self):
+        render_text(self.cursor, 80, self.cursor_x,
+                    self.cursor_y + self.offset * self.cursor_pos)
+
+    def draw_heading(self):
+        render_text(GAME_NAME, 40, MID_W, 50)
+
+    def draw_options(self):
+        cur_x, cur_y = MID_W, 220
+        for option in self.options:
+            render_text(option, self.option_size, cur_x, cur_y)
+            cur_y += self.offset
+
+    def move_cursor(self, direction):
+        self.cursor_pos = ((self.cursor_pos + direction) %
+                           len(self.options) + len(self.options)) \
+                          % len(self.options)
+
+    def choose_option(self):
+        if self.cursor_pos == EXIT_OPTION:
+            terminate()
+        elif self.cursor_pos == START_OPTION:
+            global cur_stage
+            cur_stage = LEVEL_CHOOSE_STAGE
+
+    def run(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        menu.move_cursor(-1)
+                    elif event.key == pygame.K_DOWN:
+                        menu.move_cursor(1)
+                    elif event.key == pygame.K_RETURN:
+                        menu.choose_option()
+                        running = False
+
+            screen.fill(pygame.Color(110, 176, 159))
+            menu.draw_heading()
+            menu.draw_options()
+            menu.draw_cursor()
+            pygame.display.flip()
 
 
 def real_coords(coord, x=False, y=False):
@@ -795,7 +866,10 @@ class Level:
         self.frontground_group.draw(surface)
 
 
-print(pygame.font.get_fonts())
+cur_stage = MENU_STAGE
+menu = MainMenu()
+menu.run()
+
 if __name__ == "__main__":
     while True:
         select = input("Какой цикл запустить? (1, 2, 3)").strip()
