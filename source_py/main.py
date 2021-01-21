@@ -53,6 +53,31 @@ def terminate():
     sys.exit()
 
 
+def load_image(name, colorkey=None):
+    # jpg, png, gif без анимации, bmp, pcx, tga, tif, lbm, pbm, xpm
+    fullname = os.path.join("..", "data", "images", name)  # получение полного пути к файлу
+    if not os.path.isfile(fullname):  # если файл не найден
+        print(f"Файл с изображением {fullname} не найден")
+        sys.exit()
+    image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image = image.convert()
+        if colorkey == -1:  # пусть colorkey будет (0, 0) пикселем
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    return image
+
+
+def render_text(content, size, x, y):
+    font = pygame.font.Font(MAIN_FONT, size)
+    surface = font.render(content, True, FONT_COLOR)
+    text = surface.get_rect()
+    text.center = (x, y)
+    screen.blit(surface, (0, 0))
+
+
 def real_coords(coord, x=False, y=False):
     if x and y:
         return coord * tile_width, coord * tile_height
