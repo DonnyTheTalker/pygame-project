@@ -3,56 +3,31 @@ import pygame
 import os
 import json
 from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
+from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup, QLineEdit
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
 from PyQt5.QtCore import QTimer
-from main import load_image, Tile, Level, MainEncoder, main_decoder
+from main import *
 
 pygame.init()
 
 
-def cut_sheets(sheet, names, cell_size, columns, rows):
-    rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
-    frames = list()
-    for j in range(rows):
-        for i in range(columns):
-            frame_coords = rect.w * i, rect.h * j
-            frames.append(pygame.transform.scale(sheet.subsurface(pygame.Rect(frame_coords,
-                                                                              rect.size)),
-                                                 (cell_size, cell_size)))
-    tiles = dict()  # словарь surface tile по его кодовому символу
-    for i, tile_image in enumerate(frames):
-        tiles[names[i]] = tile_image
-    reversed_tiles = {sprite: key for key, sprite in tiles.items()}
-    return tiles, reversed_tiles
-
-
-def load_sprites_from_grid(tiles, names, cell_size, grid_width, grid_height, grid, *groups):
-    for i, line in enumerate(grid):
-        for j, symb in enumerate(line):
-            if symb != '.':
-                Tile(tiles[symb], j * cell_size, i * cell_size, *groups)
-
-
 class Main(QMainWindow):
-    def __init__(self, spritesheet):
+    def __init__(self):
         super().__init__()
         pygame.init()
         # self.setupUi(self)
         uic.loadUi("../data/UI files/designer.ui", self)
-        self.spritesheet = load_image(spritesheet)
-        self.level = Level()
-        self.layer = self.level.tiles_group
         self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"  # кодовые символы
-        self.tiles, self.reversed_tiles = cut_sheets(self.spritesheet, self.names,
-                                                     self.level.CELL_SIZE, 10, 4)
+        self.level = Level("forest_spritesheet.png", self.names)
+        self.layer = self.level.tiles_group
+        self.holding = None
         self.initUI()
-        self.resize_window()
+        self.get_size()
         self.timer.start(10)
 
     def initUI(self):
         y_offset = self.height()
-        self.resizeButton.clicked.connect(self.resize_window)
+        self.resizeButton.clicked.connect(self.get_size)
         self.arrows.buttonClicked.connect(self.move_surface)
         self.layerButtons.buttonClicked.connect(self.change_layer)
         self.timer = QTimer(self)
@@ -60,7 +35,7 @@ class Main(QMainWindow):
         self.actionopen.triggered.connect(self.open)
         self.actionsave.triggered.connect(self.save)
         self.tile_buttons = QButtonGroup(self)
-        for i, tile_code in enumerate(self.tiles):
+        for i, tile_code in enumerate(self.level.tiles):
             button = QPushButton(tile_code, self)
             button.resize(self.level.CELL_SIZE, self.level.CELL_SIZE)
             button.move(20 + i % 10 * (self.level.CELL_SIZE + 10),
@@ -77,9 +52,12 @@ class Main(QMainWindow):
              self.level.grid_height * self.level.CELL_SIZE))
         self.paint()
 
-    def resize_window(self):
+    def get_size(self):
         width, height = self.widthBox.value(), self.heightBox.value()
         self.level.grid_size = self.level.grid_width, self.level.grid_height = width, height
+        self.resize_window()
+
+    def resize_window(self):
         self.init_screen()
         self.delete_abroad()
         self.paint()
@@ -100,10 +78,20 @@ class Main(QMainWindow):
 
     def check_events(self):
         for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.close()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1 or event.button == 4:
+                self.holding = event.button
+                if self.holding == 1:
                     self.add_sprite(event.pos)
-                elif event.button == 3 or event.button == 5:
+                elif self.holding == 3:
+                    self.del_sprite(event.pos)
+            if event.type == pygame.MOUSEBUTTONUP:
+                self.holding = None
+            if event.type == pygame.MOUSEMOTION and not (self.holding is None):
+                if self.holding == 1:
+                    self.add_sprite(event.pos)
+                elif self.holding == 3:
                     self.del_sprite(event.pos)
         self.paint()
 
@@ -113,7 +101,7 @@ class Main(QMainWindow):
             self.level.draw(self.screen)
         else:
             self.layer.draw(self.screen)
-        self.screen.blit(self.tiles[self.current_tile],
+        self.screen.blit(self.level.tiles[self.current_tile],
                          (self.level.grid_width * self.level.CELL_SIZE, 0))
         if self.gridMode.isChecked():
             color = pygame.Color("red")
@@ -135,7 +123,8 @@ class Main(QMainWindow):
         if x // self.level.CELL_SIZE >= self.level.grid_width:
             return
         self.del_sprite(pos)
-        Tile(self.tiles[self.current_tile], x, y, self.level.all_sprites, self.layer)
+        image = self.level.tiles[self.current_tile]
+        Tile(image, x, y, self.level.navigate[image], self.level.all_sprites, self.layer)
 
     def del_sprite(self, pos):
         x, y = pos
@@ -164,13 +153,16 @@ class Main(QMainWindow):
             return
         with open(path, 'r', encoding='utf-8') as file:
             self.level = json.load(file, object_hook=main_decoder)
-        self.tiles, self.reversed_tiles = cut_sheets(self.spritesheet, self.names,
-                                                     self.level.CELL_SIZE, 10, 4)
+
         self.layer = self.level.tiles_group
+        self.resize_window()
+        self.nameEdit.setText(path.split('/')[-1].split('.')[0])
+        self.widthBox.setValue(self.level.grid_width)
+        self.heightBox.setValue(self.level.grid_height)
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    ex = Main("forest_spritesheet.png")
+    ex = Main()
     ex.show()
     sys.exit(app.exec())

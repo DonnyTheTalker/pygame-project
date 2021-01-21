@@ -37,7 +37,6 @@ bullet_group = pygame.sprite.Group()
 obstacles_group = pygame.sprite.Group()
 player = None  # ссылка на действующего объекта класса Player
 
-
 background_sound = "../data/sounds/background.mp3"
 pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.mixer.music.load(background_sound)
@@ -67,6 +66,26 @@ def load_image(name, colorkey=None):
     return image
 
 
+def cut_sheets(sheet, names, cell_size, columns, rows):
+    sheet = load_image(sheet)
+    rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
+    frames = list()
+    navigate = dict()  # ключ - Surface, значение - положение на spritesheet
+    rnavigate = dict()  # обратный словарь
+    for j in range(rows):
+        for i in range(columns):
+            frame_coords = rect.w * i, rect.h * j
+            frames.append(pygame.transform.scale(sheet.subsurface(pygame.Rect(frame_coords,
+                                                                              rect.size)),
+                                                 (cell_size, cell_size)))
+            navigate[frames[-1]] = (j, i)
+            rnavigate[(j, i)] = frames[-1]
+    tiles = dict()  # словарь surface tile по его кодовому символу
+    for i, tile_image in enumerate(frames):
+        tiles[names[i]] = tile_image
+    return tiles, navigate, rnavigate
+
+
 def real_coords(coord, x=False, y=False):
     if x and y:
         return coord * tile_width, coord * tile_height
@@ -91,19 +110,9 @@ def update_addition_all(width, height):
 
 def main_decoder(dct):
     if "__Level__" in dct:
-        level = Level()
+        level = Level(dct["spritesheet"], dct["names"])
         level.load_level(dct)
         return level
-    elif "__Tile__" in dct:
-        return Tile(dct["image"], dct["x"], dct["y"])
-    elif "__Surface__" in dct:
-        surf = pygame.Surface((dct["width"], dct["height"]))
-        for i in range(dct["width"]):
-            for j in range(dct["height"]):
-                surf.set_at((i, j), pygame.Color(dct["pixels"][i][j]))
-        return surf
-    elif "__Color__" in dct:
-        return pygame.Color(*dct["rgba"])
     else:
         return dct
 
@@ -114,20 +123,13 @@ class MainEncoder(json.JSONEncoder):
             return {"__Level__": True, "grid_size": o.grid_size, "CELL_SIZE": o.CELL_SIZE,
                     "background_group": o.background_group.sprites(),
                     "tiles_group": o.tiles_group.sprites(),
-                    "frontground_group": o.frontground_group.sprites()}
+                    "frontground_group": o.frontground_group.sprites(),
+                    "spritesheet": o.spritesheet,
+                    "names": o.names}
         elif isinstance(o, Tile):
-            return {"__Tile__": True,
-                    "image": o.image,
-                    "x": o.rect.x,
-                    "y": o.rect.y}
-        elif isinstance(o, pygame.Surface):
-            width, height = o.get_width(), o.get_height()
-            pixels = [[o.get_at((i, j)) for j in range(height)] for i in range(width)]
-            return {"__Surface__": True,
-                    "width": width, "height": height, "pixels": pixels}
-        elif isinstance(o, pygame.Color):
-            return {"__Color__": True,
-                    "rgba": (o.r, o.g, o.b, o.a)}
+            return {"x": o.rect.x,
+                    "y": o.rect.y,
+                    "coords": o.coords}
         else:
             json.JSONEncoder.default(self, o)
 
@@ -158,9 +160,10 @@ class Collision:
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, image, x, y, *groups):
+    def __init__(self, image, x, y, coords, *groups):
         super().__init__(*groups)
         self.image = image
+        self.coords = coords
         self.rect = self.image.get_rect().move(x, y)
 
 
@@ -757,26 +760,31 @@ class RotatingSaw(Saw):
 
 
 class Level:
-    def __init__(self):
+    def __init__(self, spritesheet, names):
         self.CELL_SIZE = 24
         self.all_sprites = pygame.sprite.Group()
         self.background_group = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
         self.frontground_group = pygame.sprite.Group()
-
         self.grid_size = self.grid_width, self.grid_height = None, None
+        self.spritesheet = spritesheet
+        self.names = names
+        self.tiles, self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.names,
+                                                               self.CELL_SIZE, 10, 4)
+
+    def load_tiles_group(self, tiles_info, *groups):
+        for tile_info in tiles_info:
+            Tile(self.rnavigate[tuple(tile_info["coords"])], tile_info["x"], tile_info["y"],
+                 tile_info["coords"], *groups)
 
     def load_level(self, dct: dict):
         if "__Level__" not in dct:
             return
         self.CELL_SIZE = dct["CELL_SIZE"]
         self.grid_size = self.grid_width, self.grid_height = dct["grid_size"]
-        self.background_group = pygame.sprite.Group(dct["background_group"])
-        self.tiles_group = pygame.sprite.Group(dct["tiles_group"])
-        self.frontground_group = pygame.sprite.Group(dct["frontground_group"])
-        self.all_sprites = pygame.sprite.Group()
-        for group in [self.background_group, self.tiles_group, self.frontground_group]:
-            self.all_sprites.add(*group.sprites())
+        self.load_tiles_group(dct["background_group"], self.all_sprites, self.background_group)
+        self.load_tiles_group(dct["tiles_group"], self.all_sprites, self.tiles_group)
+        self.load_tiles_group(dct["frontground_group"], self.all_sprites, self.frontground_group)
 
     def draw(self, surface):
         self.background_group.draw(surface)
