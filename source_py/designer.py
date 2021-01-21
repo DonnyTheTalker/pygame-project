@@ -2,11 +2,14 @@ import sys
 import pygame
 import os
 import json
+from functools import partial
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
 from PyQt5.QtCore import QTimer
-from main import load_image, Tile, Level, MainEncoder, main_decoder
+from PyQt5.QtGui import QIcon
+from source_py.main import load_image, Tile, Level, MainEncoder, main_decoder
+from source_py.main import MovingEnemy, Saw, RotatingSaw, HATSaw, HATEnemy, ShootingEnemy, Obstacle
 
 pygame.init()
 
@@ -25,6 +28,10 @@ def cut_sheets(sheet, names, cell_size, columns, rows):
         tiles[names[i]] = tile_image
     reversed_tiles = {sprite: key for key, sprite in tiles.items()}
     return tiles, reversed_tiles
+
+
+def load_icon(name):
+    return QIcon(f"../data/images/{name}")
 
 
 def load_sprites_from_grid(tiles, names, cell_size, grid_width, grid_height, grid, *groups):
@@ -46,6 +53,35 @@ class Main(QMainWindow):
         self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"  # кодовые символы
         self.tiles, self.reversed_tiles = cut_sheets(self.spritesheet, self.names,
                                                      self.level.CELL_SIZE, 10, 4)
+        self.mark_group = [self.damage_active, self.speed_active,
+                           self.points_active, self.chainlen_active,
+                           self.direction_active, self.sides_active, self.bulletspeed_active,
+                           self.smart_active]
+        self.idle_marks = [0]
+        self.shooting_marks = [0, 5, 6, 7]
+        self.rotating_marks = [0, 1, 3, 4]
+        self.moving_marks = [0, 1, 2]
+        self.parameters = []
+        self.sides = []
+        self.enemy_class = "Obstacles"
+        self.bullet_image = "bullet.png"
+        self.enemies_spritesheets = {"Obstacle": ["bat2.png"],
+                                     "MovingEnemy": ["spike.png"],
+                                     "ShootingEnemy": [["elf.png", "bullet.png"]],
+                                     "HATEnemy": ["cats.png"],
+                                     "HATSaw": ["hsaw.png"],
+                                     "RotatingSaw": ["rsaw.png"],
+                                     "Saw": ["bag.png"],
+                                     }
+        self.obstacles_images = ["spike.png"]
+        self.shooting_images = ["plant.png"]
+        self.hat_enemy_images = []
+        self.hat_saw_images = []
+        self.default_saw_images = ["player.png"]
+        self.rotating_saw_images = []
+        self.moving_images = []
+        self.current_enemy = ""
+        # self.shooting_marks = []
         self.initUI()
         self.resize_window()
         self.timer.start(10)
@@ -54,6 +90,7 @@ class Main(QMainWindow):
         y_offset = self.height()
         self.resizeButton.clicked.connect(self.resize_window)
         self.arrows.buttonClicked.connect(self.move_surface)
+        self.layerButtons.addButton(self.enemy_button)
         self.layerButtons.buttonClicked.connect(self.change_layer)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_events)
@@ -70,6 +107,75 @@ class Main(QMainWindow):
                           y_offset + i // 10 * (self.level.CELL_SIZE + 10) + button.height() + 10)
         self.tile_buttons.buttonClicked.connect(self.select_tile)
         self.tile_buttons.buttons()[0].click()
+        self.init_enemy_buttons(self.obstacles, "Obstacle", self.obstacles_images,
+                                self.create_obstacle)
+        self.init_enemy_buttons(self.default_saw_group, "Saw", self.default_saw_images,
+                                self.create_obstacle)
+        self.init_enemy_buttons(self.shooting_group, "ShootingEnemy", self.shooting_images,
+                                self.create_shooting_enemy)
+        #self.init_enemy_buttons(self.shooting_group, "ShootingEnemy", "shooting_images",
+        #                        "create_shooting_enemy")
+
+    def hide_makrs(self):
+        for mark in self.mark_group:
+            mark.hide()
+
+    def create_obstacle(self, name):
+        sender = self.sender()
+        self.hide_makrs()
+        for i in self.idle_marks:
+            self.mark_group[i].show()
+        self.parameters = []
+        self.enemy_class = name
+        self.current_enemy = self.enemies_spritesheets[name][int(sender.text())]
+
+    def create_shooting_enemy(self, name):
+        sender = self.sender()
+        self.hide_makrs()
+        for i in self.shooting_marks:
+            self.mark_group[i].show()
+        self.parameters = []
+        self.sides = []
+        self.enemy_class = name
+        self.current_enemy = self.enemies_spritesheets[name][int(sender.text())][0]
+        self.bullet_image = self.enemies_spritesheets[name][int(sender.text())][1]
+
+    def push_obstacle(self, pos):
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'"]
+        print(self.current_enemy)
+        self.add_sprite(pos)
+
+    def push_shooting_enemy(self, pos):
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'",
+                           f"bullet_speed={self.BulletSpinBox.value()}",
+                           f"bullet_image='{self.bullet_image}'"]
+        if self.smartradioButton.isChecked():
+            self.parameters.append("smart=True")
+        else:
+            for button in self.sides_group.buttons():
+                if button.isChecked():
+                    self.push_side(button.text())
+            self.parameters.append(f"all_sides=[{', '.join(self.sides)}]")
+            self.parameters.append("smart=False")
+        self.add_sprite(pos)
+
+    def push_side(self, number):
+        if number not in self.sides:
+            self.sides.append(number)
+
+    def init_enemy_buttons(self, group, name, images, function):
+        i = 0
+        for button in group.buttons():
+            button.setText(f"{i}")
+            button.setIcon(load_icon(images[0]))
+            button.clicked.connect(partial(function, name))
+            i += 1
 
     def init_screen(self):
         self.screen = pygame.display.set_mode(
@@ -100,11 +206,21 @@ class Main(QMainWindow):
 
     def check_events(self):
         for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1 or event.button == 4:
-                    self.add_sprite(event.pos)
-                elif event.button == 3 or event.button == 5:
-                    self.del_sprite(event.pos)
+            if self.layer == self.level.enemy_group:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1 or event.button == 4:
+                        if self.enemy_class == "Obstacle" or self.enemy_class == "Saw":
+                            self.push_obstacle(event.pos)
+                        elif self.enemy_class == "ShootingEnemy":
+                            self.push_shooting_enemy(event.pos)
+                    elif event.button == 3 or event.button == 5:
+                        self.push_obstacle(event.pos)
+            else:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1 or event.button == 4:
+                        self.add_sprite(event.pos)
+                    elif event.button == 3 or event.button == 5:
+                        self.del_sprite(event.pos)
         self.paint()
 
     def paint(self):
@@ -135,7 +251,12 @@ class Main(QMainWindow):
         if x // self.level.CELL_SIZE >= self.level.grid_width:
             return
         self.del_sprite(pos)
-        Tile(self.tiles[self.current_tile], x, y, self.level.all_sprites, self.layer)
+        if self.layer == self.level.enemy_group:
+            self.parameters.append("groups=[self.level.all_sprites, self.level.enemy_group]")
+            enemy = f"{self.enemy_class}({', '.join(self.parameters)})"
+            exec(enemy)
+        else:
+            Tile(self.tiles[self.current_tile], x, y, self.level.all_sprites, self.layer)
 
     def del_sprite(self, pos):
         x, y = pos

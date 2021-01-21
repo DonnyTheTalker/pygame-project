@@ -9,7 +9,7 @@ from math import sin, cos
 
 pygame.init()
 SIZE = WIDTH, HEIGHT = 800, 600
-tile_width = tile_height = 32
+tile_width = tile_height = 24
 FPS = 20
 EAST = 0
 SE = 1
@@ -34,7 +34,6 @@ tiles_sprites = pygame.sprite.Group()
 player_sprites = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
-obstacles_group = pygame.sprite.Group()
 player = None  # ссылка на действующего объекта класса Player
 
 
@@ -460,8 +459,8 @@ class Player(AnimatedSprite):
 
 
 class MovingEnemy(AnimatedSprite):
-    def __init__(self, x, y, damage, speed, points, spritesheet):
-        super().__init__(spritesheet, x * tile_width, y * tile_height, enemy_group)
+    def __init__(self, x, y, damage, speed, points, spritesheet, groups):
+        super().__init__(spritesheet, x * tile_width, y * tile_height, groups)
         self.damage = damage
         self.points = points
         self.next_point = points[0]
@@ -549,9 +548,9 @@ class MovingEnemy(AnimatedSprite):
 
 
 class ShootingEnemy(AnimatedSprite):
-    def __init__(self, x, y, damage, spritesheet, bullet_image, bullet_speed=1,
+    def __init__(self, x, y, damage, spritesheet, bullet_image, groups, bullet_speed=1,
                  all_sides=None, smart=False):
-        super().__init__(x, y, damage, spritesheet)
+        super().__init__(spritesheet, x, y, groups)
         if all_sides is None:
             all_sides = [EAST]
         self.smart = smart
@@ -579,8 +578,8 @@ class ShootingEnemy(AnimatedSprite):
 
 
 class HATEnemy(AnimatedSprite):
-    def __init__(self, spritesheet, x, y, damage, speed):
-        super().__init__(spritesheet, x * tile_width, y * tile_height, enemy_group)
+    def __init__(self, spritesheet, x, y, damage, speed, groups):
+        super().__init__(spritesheet, x * tile_width, y * tile_height, groups)
         self.damage = damage
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
         self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
@@ -621,8 +620,8 @@ class HATEnemy(AnimatedSprite):
 
 
 class HATSaw(HATEnemy):
-    def __init__(self, spritesheet, x, y, damage, speed):
-        super().__init__(spritesheet, x, y, damage, speed)
+    def __init__(self, spritesheet, x, y, damage, speed, groups):
+        super().__init__(spritesheet, x, y, damage, speed, groups)
         self.set_status(SpriteStates.IDLE, True if self.speed > 0 else False)
 
     def update(self):
@@ -690,13 +689,15 @@ class SmartBullet(Bullet):
 
 
 class Obstacle(AnimatedSprite):
-    def __init__(self, x, y, damage, spritesheet):
-        super().__init__(spritesheet, x * tile_width, y * tile_height, obstacles_group)
-        if self.rect.height < tile_height:
-            self.image.get_rect().move(self.rect.x, self.rect.y + tile_height - self.rect.height)
+    def __init__(self, x, y, damage, spritesheet, groups):
+        super().__init__(spritesheet, x, y, groups)
+        #if self.rect.height < tile_height:
+        #    self.image.get_rect().move(self.rect.x, self.rect.y + tile_height - self.rect.height)
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
-        self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
+        self.rect = self.image.get_rect().move(self.rect.x,
                                                self.rect.y + self.addition_y)
+        self.rect.centerx = self.rect.x + tile_width // 2
+        print(self.addition_x, self.rect.centerx)
         self.damage = damage
 
     def update(self):
@@ -705,25 +706,17 @@ class Obstacle(AnimatedSprite):
         super().update()
 
 
-class Saw(AnimatedSprite):
-    def __init__(self, x, y, damage, spritesheet):
-        super().__init__(spritesheet, x * tile_width,
-                         y * tile_height, obstacles_group)
-        self.damage = damage
-        self.rect.center = (x * tile_width + tile_width // 2, y * tile_height + tile_height // 2)
-
-    def update(self):
-        if pygame.sprite.collide_mask(self, player):
-            player.get_damage(self.damage)
-        super().update()
+class Saw(Obstacle):
+    def __init__(self, x, y, damage, spritesheet, groups):
+        super().__init__(x, y, damage, spritesheet, groups)
+        self.rect.center = (x + tile_width // 2, y + tile_height // 2)
 
 
 class RotatingSaw(Saw):
-    def __init__(self, x, y, damage, length, spritesheet, speed=3, direction=1):
-        super().__init__(x * tile_width + tile_width // 2,
-                         y * tile_height + tile_height // 2, damage, spritesheet)
-        self.center_x = x * tile_width + tile_width // 2
-        self.center_y = -(y * tile_height + tile_height // 2)
+    def __init__(self, x, y, damage, length, spritesheet, groups, speed=3, direction=1):
+        super().__init__(x, y, damage, spritesheet, groups)
+        self.center_x = x + tile_width // 2
+        self.center_y = -(y + tile_height // 2)
         self.length = max(length, 100)
         self.x = self.center_x - length
         self.y = -self.center_y
@@ -763,6 +756,7 @@ class Level:
         self.background_group = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
         self.frontground_group = pygame.sprite.Group()
+        self.enemy_group = pygame.sprite.Group()
 
         self.grid_size = self.grid_width, self.grid_height = None, None
 
@@ -782,6 +776,7 @@ class Level:
         self.background_group.draw(surface)
         self.tiles_group.draw(surface)
         self.frontground_group.draw(surface)
+        self.enemy_group.draw(surface)
 
 
 if __name__ == "__main__":
