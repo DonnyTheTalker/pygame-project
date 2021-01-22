@@ -545,7 +545,7 @@
      <string>hat</string>
     </property>
     <attribute name="buttonGroup">
-     <string notr="true">hat_enmy_group</string>
+     <string notr="true">hat_enemy_group</string>
     </attribute>
    </widget>
    <widget class="QPushButton" name="pushButton_12">
@@ -913,7 +913,7 @@
      <string>hat</string>
     </property>
     <attribute name="buttonGroup">
-     <string notr="true">hat_enmy_group</string>
+     <string notr="true">hat_enemy_group</string>
     </attribute>
    </widget>
    <widget class="QPushButton" name="pushButton_18">
@@ -966,19 +966,19 @@
  <resources/>
  <connections/>
  <buttongroups>
+  <buttongroup name="hat_enemy_group"/>
+  <buttongroup name="shooting_group"/>
+  <buttongroup name="moving_enemy_group"/>
   <buttongroup name="obstacles"/>
-  <buttongroup name="layerButtons"/>
-  <buttongroup name="arrows"/>
+  <buttongroup name="rotating_group"/>
+  <buttongroup name="default_saw_group"/>
   <buttongroup name="sides_group">
    <property name="exclusive">
     <bool>false</bool>
    </property>
   </buttongroup>
-  <buttongroup name="shooting_group"/>
-  <buttongroup name="rotating_group"/>
+  <buttongroup name="arrows"/>
   <buttongroup name="hat_saw_group"/>
-  <buttongroup name="default_saw_group"/>
-  <buttongroup name="hat_enmy_group"/>
-  <buttongroup name="moving_enemy_group"/>
+  <buttongroup name="layerButtons"/>
  </buttongroups>
 </ui>

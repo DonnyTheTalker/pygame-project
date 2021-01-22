@@ -460,7 +460,7 @@ class Player(AnimatedSprite):
 
 class MovingEnemy(AnimatedSprite):
     def __init__(self, x, y, damage, speed, points, spritesheet, groups):
-        super().__init__(spritesheet, x * tile_width, y * tile_height, groups)
+        super().__init__(spritesheet, x, y, groups)
         self.damage = damage
         self.points = points
         self.next_point = points[0]
@@ -473,7 +473,7 @@ class MovingEnemy(AnimatedSprite):
         self.side_point = 1
         self.side_state = 1
         self.set_status(self.all_states[0][0])
-        self.rect.center = (x * tile_width + tile_width // 2, y * tile_height + tile_height // 2)
+        self.rect.center = (x + tile_width // 2, y + tile_height // 2)
         self.addition_x, self.addition_y = update_addition_center(self)
 
     def generate_states(self):
@@ -579,7 +579,7 @@ class ShootingEnemy(AnimatedSprite):
 
 class HATEnemy(AnimatedSprite):
     def __init__(self, spritesheet, x, y, damage, speed, groups):
-        super().__init__(spritesheet, x * tile_width, y * tile_height, groups)
+        super().__init__(spritesheet, x, y, groups)
         self.damage = damage
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
         self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
@@ -694,10 +694,10 @@ class Obstacle(AnimatedSprite):
         #if self.rect.height < tile_height:
         #    self.image.get_rect().move(self.rect.x, self.rect.y + tile_height - self.rect.height)
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
-        self.rect = self.image.get_rect().move(self.rect.x,
+        self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
                                                self.rect.y + self.addition_y)
-        self.rect.centerx = self.rect.x + tile_width // 2
-        print(self.addition_x, self.rect.centerx)
+        print(self.addition_x // 2, self.rect.centerx)
+        #self.rect.centerx = x + tile_width // 2
         self.damage = damage
 
     def update(self):

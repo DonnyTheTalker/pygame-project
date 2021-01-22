@@ -61,25 +61,27 @@ class Main(QMainWindow):
         self.shooting_marks = [0, 5, 6, 7]
         self.rotating_marks = [0, 1, 3, 4]
         self.moving_marks = [0, 1, 2]
+        self.hat_marks = [0, 1]
         self.parameters = []
         self.sides = []
         self.enemy_class = "Obstacles"
         self.bullet_image = "bullet.png"
-        self.enemies_spritesheets = {"Obstacle": ["bat2.png"],
-                                     "MovingEnemy": ["spike.png"],
-                                     "ShootingEnemy": [["elf.png", "bullet.png"]],
-                                     "HATEnemy": ["cats.png"],
-                                     "HATSaw": ["hsaw.png"],
-                                     "RotatingSaw": ["rsaw.png"],
-                                     "Saw": ["bag.png"],
+        self.enemies_spritesheets = {"Obstacle": ["cats.png", "fire.png", "boshy.png"],
+                                     "MovingEnemy": ["spike.png", "flying_dragon.png"],
+                                     "ShootingEnemy": [["elf.png", "bullet.png"],
+                                                       ["spritesheet1.png", "bullet.png"]],
+                                     "HATEnemy": ["cats.png", "krot.png"],
+                                     "HATSaw": ["white_cat.png", "white_cat.png"],
+                                     "RotatingSaw": ["white_cat.png", "white_cat.png"],
+                                     "Saw": ["cats.png", "bag.png"],
                                      }
-        self.obstacles_images = ["spike.png"]
-        self.shooting_images = ["plant.png"]
-        self.hat_enemy_images = []
-        self.hat_saw_images = []
-        self.default_saw_images = ["player.png"]
-        self.rotating_saw_images = []
-        self.moving_images = []
+        self.obstacles_images = ["spike.png", "mini_spikes_image.png", "spike.png"]
+        self.shooting_images = ["plant.png", "dragon_image.png"]
+        self.hat_enemy_images = ["cat_image.png", "bag_image"]
+        self.hat_saw_images = ["cat_image.png", "bag_image"]
+        self.default_saw_images = ["player.png", "cat_image.png"]
+        self.rotating_saw_images = ["player.png", "cat_image.png"]
+        self.moving_images = ["twin_dragon_image.png", "dragon_image.png"]
         self.current_enemy = ""
         # self.shooting_marks = []
         self.initUI()
@@ -108,11 +110,17 @@ class Main(QMainWindow):
         self.tile_buttons.buttonClicked.connect(self.select_tile)
         self.tile_buttons.buttons()[0].click()
         self.init_enemy_buttons(self.obstacles, "Obstacle", self.obstacles_images,
-                                self.create_obstacle)
+                                self.create_obstacle, self.idle_marks)
         self.init_enemy_buttons(self.default_saw_group, "Saw", self.default_saw_images,
-                                self.create_obstacle)
+                                self.create_obstacle, self.idle_marks)
         self.init_enemy_buttons(self.shooting_group, "ShootingEnemy", self.shooting_images,
-                                self.create_shooting_enemy)
+                                self.create_shooting_enemy, self.shooting_marks)
+        self.init_enemy_buttons(self.rotating_group, "RotatingSaw", self.rotating_saw_images,
+                                self.create_obstacle, self.rotating_marks)
+        self.init_enemy_buttons(self.hat_enemy_group, "HATEnemy", self.hat_enemy_images,
+                                self.create_obstacle, self.hat_marks)
+        self.init_enemy_buttons(self.hat_saw_group, "HATSaw", self.hat_saw_images,
+                                self.create_obstacle, self.hat_marks)
         #self.init_enemy_buttons(self.shooting_group, "ShootingEnemy", "shooting_images",
         #                        "create_shooting_enemy")
 
@@ -120,19 +128,19 @@ class Main(QMainWindow):
         for mark in self.mark_group:
             mark.hide()
 
-    def create_obstacle(self, name):
+    def create_obstacle(self, name, marks):
         sender = self.sender()
         self.hide_makrs()
-        for i in self.idle_marks:
+        for i in marks:
             self.mark_group[i].show()
         self.parameters = []
         self.enemy_class = name
         self.current_enemy = self.enemies_spritesheets[name][int(sender.text())]
 
-    def create_shooting_enemy(self, name):
+    def create_shooting_enemy(self, name, marks):
         sender = self.sender()
         self.hide_makrs()
-        for i in self.shooting_marks:
+        for i in marks:
             self.mark_group[i].show()
         self.parameters = []
         self.sides = []
@@ -140,12 +148,31 @@ class Main(QMainWindow):
         self.current_enemy = self.enemies_spritesheets[name][int(sender.text())][0]
         self.bullet_image = self.enemies_spritesheets[name][int(sender.text())][1]
 
+    def push_rotating_saw(self, pos):
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'",
+                           f"length={self.ChainSpinBox.value()}",
+                           f"direction={self.DirectionSpinBox.value()}",
+                           f"speed={self.SpeedSpinBox.value()}"]
+        self.add_sprite(pos)
+
+    def push_hat_enemy(self, pos):
+        print(pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE)
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'",
+                           f"speed={self.SpeedSpinBox.value()}"]
+        self.add_sprite(pos)
+
     def push_obstacle(self, pos):
+        print(pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE)
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"spritesheet='{self.current_enemy}'"]
-        print(self.current_enemy)
         self.add_sprite(pos)
 
     def push_shooting_enemy(self, pos):
@@ -169,12 +196,12 @@ class Main(QMainWindow):
         if number not in self.sides:
             self.sides.append(number)
 
-    def init_enemy_buttons(self, group, name, images, function):
+    def init_enemy_buttons(self, group, name, images, function, marks):
         i = 0
         for button in group.buttons():
             button.setText(f"{i}")
-            button.setIcon(load_icon(images[0]))
-            button.clicked.connect(partial(function, name))
+            button.setIcon(load_icon(images[i]))
+            button.clicked.connect(partial(function, name, marks))
             i += 1
 
     def init_screen(self):
@@ -211,8 +238,13 @@ class Main(QMainWindow):
                     if event.button == 1 or event.button == 4:
                         if self.enemy_class == "Obstacle" or self.enemy_class == "Saw":
                             self.push_obstacle(event.pos)
+                            print(event.pos)
                         elif self.enemy_class == "ShootingEnemy":
                             self.push_shooting_enemy(event.pos)
+                        elif self.enemy_class == "RotatingSaw":
+                            self.push_rotating_saw(event.pos)
+                        elif self.enemy_class == "HATEnemy" or self.enemy_class == "HATSaw":
+                            self.push_hat_enemy(event.pos)
                     elif event.button == 3 or event.button == 5:
                         self.push_obstacle(event.pos)
             else:
@@ -254,6 +286,7 @@ class Main(QMainWindow):
         if self.layer == self.level.enemy_group:
             self.parameters.append("groups=[self.level.all_sprites, self.level.enemy_group]")
             enemy = f"{self.enemy_class}({', '.join(self.parameters)})"
+            print(enemy)
             exec(enemy)
         else:
             Tile(self.tiles[self.current_tile], x, y, self.level.all_sprites, self.layer)
