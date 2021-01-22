@@ -121,7 +121,7 @@ class Main(QMainWindow):
         self.points.clear()
 
     def accept_points(self):
-        if len(self.points) < 2:
+        if len(self.points) >= 2:
             self.push_moving_enemy()
             self.points = []
         else:
