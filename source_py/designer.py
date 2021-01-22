@@ -25,7 +25,8 @@ class Main(QMainWindow):
         uic.loadUi("../data/UI files/designer.ui", self)
         self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"  # кодовые символы
         self.level = Level("forest_spritesheet.png", self.names)
-        self.layer = self.level.tiles_group
+        self.timer = QTimer(self)
+        self.tile_buttons = QButtonGroup(self)
         self.holding = None
         self.mark_group = [self.damage_active, self.speed_active,
                            self.points_active, self.chainlen_active,
@@ -61,6 +62,7 @@ class Main(QMainWindow):
         self.initUI()
         self.get_size()
         self.timer.start(10)
+        self.tiles_button.click()
 
     def initUI(self):
         y_offset = self.height()
@@ -68,12 +70,10 @@ class Main(QMainWindow):
         self.arrows.buttonClicked.connect(self.move_surface)
         self.layerButtons.addButton(self.enemy_button)
         self.layerButtons.buttonClicked.connect(self.change_layer)
-        self.timer = QTimer(self)
         self.timer.timeout.connect(self.check_events)
         self.actionopen.triggered.connect(self.open)
         self.actionsave.triggered.connect(self.save)
-        self.tile_buttons = QButtonGroup(self)
-        self.print_button.clicked.connect(self.print_points)
+        # self.print_button.clicked.connect(self.print_points)
         self.clear_points.clicked.connect(self.clear_all_points)
         for i, tile_code in enumerate(self.level.tiles):
             button = QPushButton(tile_code, self)
@@ -132,24 +132,37 @@ class Main(QMainWindow):
             mark.hide()
 
     def set_state(self, group, val):
-        if group == "enemy":
-            for button in self.obstacles.buttons():
+        enemy_buttons_groups = [self.obstacles.buttons(), self.default_saw_group.buttons(),
+                                self.shooting_group.buttons(), self.hat_enemy_group.buttons(),
+                                self.rotating_group.buttons(), self.hat_saw_group.buttons(),
+                                self.moving_enemy_group.buttons(), self.control_buttons.buttons(),
+                                self.sides_group.buttons(),
+                                [self.DamageSpinBox, self.SpeedSpinBox, self.ChainSpinBox,
+                                 self.DirectionSpinBox, self.BulletSpinBox, self.smartradioButton]]
+        tiles_buttons_groups = [self.arrows.buttons(), self.tile_buttons.buttons()]
+        for buttons_group in (tiles_buttons_groups if group != "enemy" else enemy_buttons_groups):
+            for button in buttons_group:
                 button.setEnabled(val)
-            for button in self.default_saw_group.buttons():
-                button.setEnabled(val)
-            for button in self.shooting_group.buttons():
-                button.setEnabled(val)
-            for button in self.hat_enemy_group.buttons():
-                button.setEnabled(val)
-            for button in self.rotating_group.buttons():
-                button.setEnabled(val)
-            for button in self.hat_saw_group.buttons():
-                button.setEnabled(val)
-            for button in self.moving_enemy_group.buttons():
-                button.setEnabled(val)
-        else:
-            for button in self.tile_buttons.buttons():
-                button.setEnabled(val)
+        # if group == "enemy":
+        # for button in self.obstacles.buttons():
+        #     button.setEnabled(val)
+        # for button in self.default_saw_group.buttons():
+        #     button.setEnabled(val)
+        # for button in self.shooting_group.buttons():
+        #     button.setEnabled(val)
+        # for button in self.hat_enemy_group.buttons():
+        #     button.setEnabled(val)
+        # for button in self.rotating_group.buttons():
+        #     button.setEnabled(val)
+        # for button in self.hat_saw_group.buttons():
+        #     button.setEnabled(val)
+        # for button in self.moving_enemy_group.buttons():
+        #     button.setEnabled(val)
+        # else:
+        #     for button in self.arrows.buttons():
+        #         button.setEnabled(val)
+        #     for button in self.tile_buttons.buttons():
+        #         button.setEnabled(val)
 
     def create_obstacle(self, name, marks):
         sender = self.sender()
@@ -395,7 +408,7 @@ class Main(QMainWindow):
         with open(path, 'r', encoding='utf-8') as file:
             self.level = json.load(file, object_hook=main_decoder)
 
-        self.layer = self.level.tiles_group
+        self.tiles_button.click()
         self.resize_window()
         self.nameEdit.setText(path.split('/')[-1].split('.')[0])
         self.widthBox.setValue(self.level.grid_width)
