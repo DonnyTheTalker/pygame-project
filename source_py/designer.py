@@ -63,6 +63,7 @@ class Main(QMainWindow):
         self.timer.start(10)
 
     def initUI(self):
+        self.setGeometry(1200, 200, self.width(), self.height())
         y_offset = self.height()
         self.resizeButton.clicked.connect(self.get_size)
         self.arrows.buttonClicked.connect(self.move_surface)

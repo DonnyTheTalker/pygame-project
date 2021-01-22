@@ -37,13 +37,6 @@ bullet_group = pygame.sprite.Group()
 player = None  # ссылка на действующего объекта класса Player
 
 
-background_sound = "../data/sounds/background.mp3"
-pygame.mixer.pre_init(44100, -16, 2, 512)
-pygame.mixer.music.load(background_sound)
-pygame.mixer.music.set_volume(50)
-pygame.mixer.music.play(-1)
-
-
 def terminate():
     pygame.quit()
     sys.exit()
@@ -113,6 +106,25 @@ def main_decoder(dct):
         level = Level(dct["spritesheet"], dct["names"])
         level.load_level(dct)
         return level
+    if "__Obstacle__" in dct:
+        return Obstacle(dct["x"], dct["y"], dct["damage"], dct["spritesheet"])
+    if "__Saw__" in dct:
+        return Saw(dct["x"], dct["y"], dct["damage"], dct["spritesheet"])
+    if "__ShootingEnemy__" in dct:
+        return ShootingEnemy(dct['x'], dct['y'], dct['damage'], dct['spritesheet'],
+                             dct['bullet_image'], list(), bullet_speed=dct['bullet_speed'],
+                             all_sides=dct['all_sides'], smart=dct['smart'])
+    if "__RotatingSaw__" in dct:
+        return RotatingSaw(dct['x'], dct['y'], dct['damage'], dct['length'], dct['spritesheet'],
+                           list(), dct['speed'], dct['direction'])
+    if "__HATEnemy__" in dct:
+        return HATEnemy(dct['spritesheet'], dct['x'], dct['y'], dct['damage'],
+                        dct['speed'], list())
+    if "__HATSaw__" in dct:
+        return HATSaw(dct['spritesheet'], dct['x'], dct['y'], dct['damage'], dct['speed'], list())
+    if "__MovingEnemy__" in dct:
+        return MovingEnemy(dct['x'], dct['y'], dct['damage'], dct['speed'], dct['points'],
+                           dct['spritesheet'], list())
     else:
         return dct
 
@@ -124,12 +136,65 @@ class MainEncoder(json.JSONEncoder):
                     "background_group": o.background_group.sprites(),
                     "tiles_group": o.tiles_group.sprites(),
                     "frontground_group": o.frontground_group.sprites(),
+                    "enemy_group": o.enemy_group.sprites(),
                     "spritesheet": o.spritesheet,
                     "names": o.names}
         elif isinstance(o, Tile):
             return {"x": o.rect.x,
                     "y": o.rect.y,
                     "coords": o.coords}
+        elif isinstance(o, Obstacle):
+            return {"__Obstacle__": True,
+                    "x": o.x,
+                    "y": o.y,
+                    "damage": o.damage,
+                    "spritesheet": o.spritesheet}
+        elif isinstance(o, Saw):
+            return {"__Saw__": True,
+                    "x": o.x,
+                    "y": o.y,
+                    "damage": o.damage,
+                    "spritesheet": o.spritesheet}
+        elif isinstance(o, ShootingEnemy):
+            return {"__ShootingEnemy__": True,
+                    "x": o.x,
+                    "y": o.y,
+                    "damage": o.damage,
+                    "spritesheet": o.spritesheet,
+                    "bullet_image": o.bullet_image,
+                    "bullet_speed": o.bullet_speed,
+                    "all_sides": o.all_sides,
+                    "smart": o.smart}
+        elif isinstance(o, RotatingSaw):
+            return {"__RotatingSaw__": True,
+                    "x": o.x,
+                    "y": o.y,
+                    "damage": o.damage,
+                    "length": o.length,
+                    "spritesheet": o.spritesheet,
+                    "speed": o.speed,
+                    "direction": o.direction}
+        elif isinstance(o, HATEnemy):
+            return {"__HATEnemy__": True,
+                    "spritesheet": o.spritesheet,
+                    "x": o.x,
+                    "y": o.y,
+                    "damage": o.damage,
+                    "speed": o.speed}
+        elif isinstance(o, HATSaw):
+            return {"__HATSaw__": True,
+                    "spritesheet": o.spritesheet,
+                    "x": o.x,
+                    "y": o.y,
+                    "damage": o.damage,
+                    "speed": o.speed}
+        elif isinstance(o, MovingEnemy):
+            return {"__MovingEnemy__": True,
+                    "x": o.x,
+                    "y": o.y,
+                    "damage": o.damage,
+                    "points": o.points,
+                    "spritesheet": o.spritesheet}
         else:
             json.JSONEncoder.default(self, o)
 
@@ -170,6 +235,9 @@ class Tile(pygame.sprite.Sprite):
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, spritesheet, x, y, *groups):
         super().__init__(all_sprites, *groups)
+        self.x = x
+        self.y = y
+        self.spritesheet = spritesheet
         self.direction = True
         self.status = None
         self.current_sprite = 0
@@ -464,7 +532,7 @@ class Player(AnimatedSprite):
 
 class MovingEnemy(AnimatedSprite):
     def __init__(self, x, y, damage, speed, points, spritesheet, groups):
-        super().__init__(spritesheet, x, y, groups)
+        super().__init__(spritesheet, x, y, *groups)
         self.damage = damage
         self.points = points
         self.next_point = points[0]
@@ -554,7 +622,7 @@ class MovingEnemy(AnimatedSprite):
 class ShootingEnemy(AnimatedSprite):
     def __init__(self, x, y, damage, spritesheet, bullet_image, groups, bullet_speed=1,
                  all_sides=None, smart=False):
-        super().__init__(spritesheet, x, y, groups)
+        super().__init__(spritesheet, x, y, *groups)
         if all_sides is None:
             all_sides = [EAST]
         self.smart = smart
@@ -583,7 +651,7 @@ class ShootingEnemy(AnimatedSprite):
 
 class HATEnemy(AnimatedSprite):
     def __init__(self, spritesheet, x, y, damage, speed, groups):
-        super().__init__(spritesheet, x, y, groups)
+        super().__init__(spritesheet, x, y, *groups)
         self.damage = damage
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
         self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
@@ -693,9 +761,9 @@ class SmartBullet(Bullet):
 
 
 class Obstacle(AnimatedSprite):
-    def __init__(self, x, y, damage, spritesheet, groups):
-        super().__init__(spritesheet, x, y, groups)
-        #if self.rect.height < tile_height:
+    def __init__(self, x, y, damage, spritesheet, groups=list()):
+        super().__init__(spritesheet, x, y, *groups)
+        # if self.rect.height < tile_height:
         #    self.image.get_rect().move(self.rect.x, self.rect.y + tile_height - self.rect.height)
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
         self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
@@ -709,19 +777,19 @@ class Obstacle(AnimatedSprite):
 
 
 class Saw(Obstacle):
-    def __init__(self, x, y, damage, spritesheet, groups):
+    def __init__(self, x, y, damage, spritesheet, groups=list()):
         super().__init__(x, y, damage, spritesheet, groups)
         self.rect.center = (x + tile_width // 2, y + tile_height // 2)
 
 
 class RotatingSaw(Saw):
-    def __init__(self, x, y, damage, length, spritesheet, groups, speed=3, direction=1):
+    def __init__(self, x, y, damage, length, spritesheet, groups=list(), speed=3, direction=1):
         super().__init__(x, y, damage, spritesheet, groups)
         self.center_x = x + tile_width // 2
         self.center_y = -(y + tile_height // 2)
         self.length = max(length, 100)
-        self.x = self.center_x - length
-        self.y = -self.center_y
+        self.saw_x = self.center_x - length
+        self.saw_y = -self.center_y
         self.angle = 0
         self.speed = speed
         self.direction = direction
@@ -732,12 +800,12 @@ class RotatingSaw(Saw):
             self.angle = 0
         elif self.angle < 0:
             self.angle = 360
-        self.x = self.length * sin(self.angle) + self.center_x
-        self.y = -self.length * cos(self.angle) + self.center_y
+        self.saw_x = self.length * sin(self.angle) + self.center_x
+        self.saw_y = -self.length * cos(self.angle) + self.center_y
         self.draw_chain()
         self.draw_base()
-        self.rect = self.image.get_rect().move(self.x - self.rect.w // 2,
-                                               -self.y - self.rect.h // 2)
+        self.rect = self.image.get_rect().move(self.saw_x - self.rect.w // 2,
+                                               -self.saw_y - self.rect.h // 2)
         super().update()
 
     def draw_chain(self):
@@ -752,7 +820,7 @@ class RotatingSaw(Saw):
 
 
 class Level:
-    def __init__(self):
+    def __init__(self, spritesheet, names):
         self.CELL_SIZE = 24
         self.all_sprites = pygame.sprite.Group()
         self.background_group = pygame.sprite.Group()
@@ -772,13 +840,14 @@ class Level:
                  tile_info["coords"], *groups)
 
     def load_level(self, dct: dict):
-        if "__Level__" not in dct:
-            return
         self.CELL_SIZE = dct["CELL_SIZE"]
         self.grid_size = self.grid_width, self.grid_height = dct["grid_size"]
         self.load_tiles_group(dct["background_group"], self.all_sprites, self.background_group)
         self.load_tiles_group(dct["tiles_group"], self.all_sprites, self.tiles_group)
         self.load_tiles_group(dct["frontground_group"], self.all_sprites, self.frontground_group)
+        for enemy in dct["enemy_group"]:
+            self.enemy_group.add(enemy)
+            self.all_sprites.add(enemy)
 
     def draw(self, surface):
         self.background_group.draw(surface)
@@ -788,6 +857,11 @@ class Level:
 
 
 if __name__ == "__main__":
+    background_sound = "../data/sounds/background.mp3"
+    pygame.mixer.pre_init(44100, -16, 2, 512)
+    pygame.mixer.music.load(background_sound)
+    pygame.mixer.music.set_volume(50)
+    pygame.mixer.music.play(-1)
     while True:
         select = input("Какой цикл запустить? (1, 2, 3)").strip()
         if select in ['1', '2', '3']:
