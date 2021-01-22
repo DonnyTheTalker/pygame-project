@@ -73,6 +73,8 @@ class Main(QMainWindow):
         self.actionopen.triggered.connect(self.open)
         self.actionsave.triggered.connect(self.save)
         self.tile_buttons = QButtonGroup(self)
+        self.print_button.clicked.connect(self.print_points)
+        self.clear_points.clicked.connect(self.clear_all_points)
         for i, tile_code in enumerate(self.level.tiles):
             button = QPushButton(tile_code, self)
             button.resize(self.level.CELL_SIZE, self.level.CELL_SIZE)
@@ -84,6 +86,8 @@ class Main(QMainWindow):
         self.tile_buttons.buttonClicked.connect(self.select_tile)
         self.tile_buttons.buttons()[0].click()
         self.accept_button.clicked.connect(self.accept_points)
+        self.hide_makrs()
+        self.set_state("enemy", False)
         self.init_enemy_buttons(self.obstacles, "Obstacle", self.obstacles_images,
                                 self.create_obstacle, self.idle_marks)
         self.init_enemy_buttons(self.default_saw_group, "Saw", self.default_saw_images,
@@ -98,35 +102,59 @@ class Main(QMainWindow):
                                 self.create_obstacle, self.hat_marks)
         self.init_enemy_buttons(self.moving_enemy_group, "MovingEnemy", self.moving_images,
                                 self.create_moving_enemy, self.moving_marks)
-        # self.init_enemy_buttons(self.shooting_group, "ShootingEnemy", "shooting_images",
-        #                        "create_shooting_enemy")
 
     def correct_points(self, pos):
         pos = [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
         if pos[0] >= self.level.grid_width:
             return False
         if self.points:
-            print(self.points, pos)
             return pos[0] == self.points[-1][0] or pos[1] == self.points[-1][1]
         return True
 
     def get_point(self, pos):
         return [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
 
+    def print_points(self):
+        print(self.points)
+
+    def clear_all_points(self):
+        self.points.clear()
+
     def accept_points(self):
-        if self.points:
+        if len(self.points) < 2:
             self.push_moving_enemy()
             self.points = []
         else:
-            print("Вы не назначили точки!")
+            print("Надо назначить 2 и более точек")
 
     def hide_makrs(self):
         for mark in self.mark_group:
             mark.hide()
 
+    def set_state(self, group, val):
+        if group == "enemy":
+            for button in self.obstacles.buttons():
+                button.setEnabled(val)
+            for button in self.default_saw_group.buttons():
+                button.setEnabled(val)
+            for button in self.shooting_group.buttons():
+                button.setEnabled(val)
+            for button in self.hat_enemy_group.buttons():
+                button.setEnabled(val)
+            for button in self.rotating_group.buttons():
+                button.setEnabled(val)
+            for button in self.hat_saw_group.buttons():
+                button.setEnabled(val)
+            for button in self.moving_enemy_group.buttons():
+                button.setEnabled(val)
+        else:
+            for button in self.tile_buttons.buttons():
+                button.setEnabled(val)
+
     def create_obstacle(self, name, marks):
         sender = self.sender()
         self.hide_makrs()
+        self.points = []
         for i in marks:
             self.mark_group[i].show()
         self.parameters = []
@@ -136,6 +164,7 @@ class Main(QMainWindow):
     def create_shooting_enemy(self, name, marks):
         sender = self.sender()
         self.hide_makrs()
+        self.points = []
         for i in marks:
             self.mark_group[i].show()
         self.parameters = []
@@ -175,7 +204,6 @@ class Main(QMainWindow):
         self.add_sprite(pos)
 
     def push_hat_enemy(self, pos):
-        print(pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE)
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
@@ -184,7 +212,6 @@ class Main(QMainWindow):
         self.add_sprite(pos)
 
     def push_obstacle(self, pos):
-        print(pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE)
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
@@ -237,6 +264,12 @@ class Main(QMainWindow):
         self.paint()
 
     def change_layer(self, button):
+        if button.text() == "enemy":
+            self.set_state("enemy", True)
+            self.set_state("Tile", False)
+        else:
+            self.set_state("enemy", False)
+            self.set_state("Tile", True)
         query = f'self.layer = self.level.{button.text()}_group'
         exec(query)
 
@@ -270,11 +303,9 @@ class Main(QMainWindow):
                             self.push_hat_enemy(event.pos)
                         elif self.enemy_class == "MovingEnemy":
                             if self.correct_points(event.pos):
-                                print(self.points)
                                 self.points.append(self.get_point(event.pos))
                     elif event.button == 3:
-                        # Реализовать удаление препятствия
-                        pass
+                        self.del_sprite(event.pos)
             else:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.holding = event.button
@@ -331,7 +362,6 @@ class Main(QMainWindow):
         if self.layer == self.level.enemy_group:
             self.parameters.append("groups=[self.level.all_sprites, self.level.enemy_group]")
             enemy = f"{self.enemy_class}({', '.join(self.parameters)})"
-            print(enemy)
             exec(enemy)
         else:
             image = self.level.tiles[self.current_tile]

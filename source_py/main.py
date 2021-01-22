@@ -752,7 +752,7 @@ class RotatingSaw(Saw):
 
 
 class Level:
-    def __init__(self):
+    def __init__(self, spritesheet, names):
         self.CELL_SIZE = 24
         self.all_sprites = pygame.sprite.Group()
         self.background_group = pygame.sprite.Group()
