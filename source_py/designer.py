@@ -64,10 +64,11 @@ class Main(QMainWindow):
         self.hat_marks = [0, 1]
         self.parameters = []
         self.sides = []
+        self.points = []
         self.enemy_class = "Obstacles"
         self.bullet_image = "bullet.png"
         self.enemies_spritesheets = {"Obstacle": ["cats.png", "fire.png", "boshy.png"],
-                                     "MovingEnemy": ["spike.png", "flying_dragon.png"],
+                                     "MovingEnemy": ["spike1.png", "flying_dragon.png"],
                                      "ShootingEnemy": [["elf.png", "bullet.png"],
                                                        ["spritesheet1.png", "bullet.png"]],
                                      "HATEnemy": ["cats.png", "krot.png"],
@@ -109,6 +110,7 @@ class Main(QMainWindow):
                           y_offset + i // 10 * (self.level.CELL_SIZE + 10) + button.height() + 10)
         self.tile_buttons.buttonClicked.connect(self.select_tile)
         self.tile_buttons.buttons()[0].click()
+        self.accept_button.clicked.connect(self.accept_points)
         self.init_enemy_buttons(self.obstacles, "Obstacle", self.obstacles_images,
                                 self.create_obstacle, self.idle_marks)
         self.init_enemy_buttons(self.default_saw_group, "Saw", self.default_saw_images,
@@ -121,8 +123,29 @@ class Main(QMainWindow):
                                 self.create_obstacle, self.hat_marks)
         self.init_enemy_buttons(self.hat_saw_group, "HATSaw", self.hat_saw_images,
                                 self.create_obstacle, self.hat_marks)
+        self.init_enemy_buttons(self.moving_enemy_group, "MovingEnemy", self.moving_images,
+                                self.create_moving_enemy, self.moving_marks)
         #self.init_enemy_buttons(self.shooting_group, "ShootingEnemy", "shooting_images",
         #                        "create_shooting_enemy")
+
+    def correct_points(self, pos):
+        pos = [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
+        if pos[0] >= self.level.grid_width:
+            return False
+        if self.points:
+            print(self.points, pos)
+            return pos[0] == self.points[-1][0] or pos[1] == self.points[-1][1]
+        return True
+
+    def get_point(self, pos):
+        return [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
+
+    def accept_points(self):
+        if self.points:
+            self.push_moving_enemy()
+            self.points = []
+        else:
+            print("Вы не назначили точки!")
 
     def hide_makrs(self):
         for mark in self.mark_group:
@@ -147,6 +170,26 @@ class Main(QMainWindow):
         self.enemy_class = name
         self.current_enemy = self.enemies_spritesheets[name][int(sender.text())][0]
         self.bullet_image = self.enemies_spritesheets[name][int(sender.text())][1]
+
+    def create_moving_enemy(self, name, marks):
+        sender = self.sender()
+        self.hide_makrs()
+        for i in marks:
+            self.mark_group[i].show()
+        self.parameters = []
+        self.points = []
+        self.enemy_class = name
+        self.current_enemy = self.enemies_spritesheets[name][int(sender.text())]
+
+    def push_moving_enemy(self):
+        pos = self.points[0]
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] * self.level.CELL_SIZE}",
+                           f"y={pos[1] * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'",
+                           f"speed={self.SpeedSpinBox.value()}",
+                           f"points={self.points}"]
+        self.add_sprite(pos)
 
     def push_rotating_saw(self, pos):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
@@ -245,6 +288,10 @@ class Main(QMainWindow):
                             self.push_rotating_saw(event.pos)
                         elif self.enemy_class == "HATEnemy" or self.enemy_class == "HATSaw":
                             self.push_hat_enemy(event.pos)
+                        elif self.enemy_class == "MovingEnemy":
+                            if self.correct_points(event.pos):
+                                print(self.points)
+                                self.points.append(self.get_point(event.pos))
                     elif event.button == 3 or event.button == 5:
                         self.push_obstacle(event.pos)
             else:
@@ -274,6 +321,17 @@ class Main(QMainWindow):
                 pygame.draw.line(self.screen, color, (0, j * self.level.CELL_SIZE),
                                  (self.level.grid_width * self.level.CELL_SIZE,
                                   j * self.level.CELL_SIZE), 1)
+            for point in self.points:
+                pygame.draw.line(self.screen, (0, 0, 255),
+                                 (point[0] * self.level.CELL_SIZE + 3,
+                                  point[1] * self.level.CELL_SIZE + 3),
+                                 (point[0] * self.level.CELL_SIZE + self.level.CELL_SIZE - 6,
+                                  point[1] * self.level.CELL_SIZE + self.level.CELL_SIZE - 4), 2)
+                pygame.draw.line(self.screen, (0, 0, 255),
+                                 (point[0] * self.level.CELL_SIZE + 3,
+                                  point[1] * self.level.CELL_SIZE + self.level.CELL_SIZE - 4),
+                                 (point[0] * self.level.CELL_SIZE + self.level.CELL_SIZE - 6,
+                                  point[1] * self.level.CELL_SIZE + 3), 2)
         pygame.display.flip()
 
     def add_sprite(self, pos):
