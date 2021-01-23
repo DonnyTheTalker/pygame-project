@@ -47,7 +47,7 @@ class Main(QMainWindow):
                                      "ShootingEnemy": [["black_hole.png", "bullet.png"],
                                                        ["black_hole2.png", "bat2.png"]],
                                      "HATEnemy": ["big_cats.png", "skeleton.png"],
-                                     "HATSaw": ["saw.png", "saw2.png"],
+                                     "HATSaw": ["hat_saw.png", "hat_saw2.png"],
                                      "RotatingSaw": ["saw.png", "saw2.png"],
                                      "Saw": ["saw.png", "saw2.png"],
                                      }
