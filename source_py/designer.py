@@ -42,22 +42,22 @@ class Main(QMainWindow):
         self.points = []
         self.enemy_class = "Obstacles"
         self.bullet_image = "bullet.png"
-        self.enemies_spritesheets = {"Obstacle": ["cats.png", "fire.png", "boshy.png"],
-                                     "MovingEnemy": ["spike1.png", "flying_dragon.png"],
-                                     "ShootingEnemy": [["elf.png", "bullet.png"],
-                                                       ["spritesheet1.png", "bullet.png"]],
-                                     "HATEnemy": ["cats.png", "krot.png"],
-                                     "HATSaw": ["white_cat.png", "white_cat.png"],
-                                     "RotatingSaw": ["white_cat.png", "white_cat.png"],
-                                     "Saw": ["cats.png", "bag.png"],
+        self.enemies_spritesheets = {"Obstacle": ["spike1.png", "fire1.png", "kust3.png"],
+                                     "MovingEnemy": ["bag.png", "flying_dragon1.png"],
+                                     "ShootingEnemy": [["black_hole.png", "bullet.png"],
+                                                       ["black_hole2.png", "bat2.png"]],
+                                     "HATEnemy": ["big_cats.png", "skeleton.png"],
+                                     "HATSaw": ["saw.png", "saw2.png"],
+                                     "RotatingSaw": ["saw.png", "saw2.png"],
+                                     "Saw": ["saw.png", "saw2.png"],
                                      }
-        self.obstacles_images = ["spike.png", "mini_spikes_image.png", "spike.png"]
-        self.shooting_images = ["plant.png", "dragon_image.png"]
-        self.hat_enemy_images = ["cat_image.png", "bag_image"]
-        self.hat_saw_images = ["cat_image.png", "bag_image"]
-        self.default_saw_images = ["player.png", "cat_image.png"]
-        self.rotating_saw_images = ["player.png", "cat_image.png"]
-        self.moving_images = ["twin_dragon_image.png", "dragon_image.png"]
+        self.obstacles_images = ["spike.png", "fire_image.png", "kust_image.png"]
+        self.shooting_images = ["black_hole_image.png", "black_hole_2_image.png"]
+        self.hat_enemy_images = ["big_cat_image.png", "skeleton_image.png"]
+        self.hat_saw_images = ["saw_image.png", "saw2_image.png"]
+        self.default_saw_images = ["saw_image.png", "saw2_image.png"]
+        self.rotating_saw_images = ["saw_image.png", "saw2_image.png"]
+        self.moving_images = ["bag_image.png", "dragon_image.png"]
         self.current_enemy = ""
         self.initUI()
         self.get_size()
@@ -184,7 +184,7 @@ class Main(QMainWindow):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] * self.level.CELL_SIZE}",
                            f"y={pos[1] * self.level.CELL_SIZE}",
-                           f"spritesheet='spritesheet1.png'",
+                           f"spritesheet='{self.current_enemy}'",
                            f"speed={self.SpeedSpinBox.value()}",
                            f"points={self.points}"]
         self.add_sprite(pos)
@@ -193,7 +193,7 @@ class Main(QMainWindow):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
-                           f"spritesheet='spritesheet1.png'",
+                           f"spritesheet='{self.current_enemy}'",
                            f"length={self.ChainSpinBox.value()}",
                            f"direction={self.DirectionSpinBox.value()}",
                            f"speed={self.SpeedSpinBox.value()}"]
@@ -203,7 +203,7 @@ class Main(QMainWindow):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
-                           f"spritesheet='spritesheet1.png'",
+                           f"spritesheet='{self.current_enemy}'",
                            f"speed={self.SpeedSpinBox.value()}"]
         self.add_sprite(pos)
 
@@ -211,14 +211,14 @@ class Main(QMainWindow):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
-                           f"spritesheet='spritesheet1.png'"]
+                           f"spritesheet='{self.current_enemy}'"]
         self.add_sprite(pos)
 
     def push_shooting_enemy(self, pos):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
-                           f"spritesheet='spritesheet1.png'",
+                           f"spritesheet='{self.current_enemy}'",
                            f"bullet_speed={self.BulletSpinBox.value()}",
                            f"bullet_image='{self.bullet_image}'"]
         if self.smartradioButton.isChecked():
@@ -324,7 +324,7 @@ class Main(QMainWindow):
         self.screen.fill(pygame.Color("white"))
         if self.displayMode.isChecked():
             # for sprite in self.level.all_sprites.sprites():
-            #     pygame.draw.rect(self.screen, "red", sprite.rect)
+             # pygame.draw.rect(self.screen, "red", sprite.rect)
             self.level.draw(self.screen)
             if self.level.start:
                 self.screen.blit(Flag.image, (self.level.start.rect.x, self.level.start.rect.y))
@@ -372,8 +372,9 @@ class Main(QMainWindow):
         if self.layer == self.level.enemy_group:
             self.parameters.append("groups=[self.level.all_sprites, self.level.enemy_group]")
             enemy = f"{self.enemy_class}({', '.join(self.parameters)})"
-            print(enemy)
             exec(enemy)
+            pygame.sprite.spritecollide(self.level.enemy_group.sprites()[-1],
+                                        self.level.tiles_group, True)
         else:
             if self.current_tile == "Start":
                 if self.layer == self.level.tiles_group:
@@ -408,7 +409,7 @@ class Main(QMainWindow):
         x = x // self.level.CELL_SIZE * self.level.CELL_SIZE
         y = y // self.level.CELL_SIZE * self.level.CELL_SIZE
         for sprite in self.layer.sprites():
-            if sprite.rect.collidepoint(x, y):
+            if sprite.rect.collidepoint(pos[0], pos[1]):
                 sprite.kill()
         if self.layer == self.level.tiles_group:
             if self.level.start and self.level.start.rect.collidepoint(x, y):
