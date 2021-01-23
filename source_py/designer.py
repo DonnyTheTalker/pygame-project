@@ -287,6 +287,7 @@ class Main(QMainWindow):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.close()
+                break
             if event.type == pygame.MOUSEBUTTONUP:
                 self.holding = None
             if self.layer == self.level.enemy_group:

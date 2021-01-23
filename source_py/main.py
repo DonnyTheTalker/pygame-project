@@ -36,6 +36,12 @@ GAME_NAME = "Первый научный платформер"
 screen = pygame.display.set_mode(SIZE)
 pygame.display.set_caption(GAME_NAME)
 clock = pygame.time.Clock()
+all_sprites = pygame.sprite.Group()
+tiles_sprites = pygame.sprite.Group()
+player_sprites = pygame.sprite.Group()
+enemy_group = pygame.sprite.Group()
+bullet_group = pygame.sprite.Group()
+player = None  # ссылка на действующего объекта класса Player
 
 background_sound = "../data/sounds/background.mp3"
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -48,9 +54,7 @@ FONT_COLOR = pygame.Color("white")
 MENU_BACKGROUND_COLOR = pygame.Color(110, 176, 159)
 
 START_OPTION = 0
-LEVEL_CREATE_OPTION = 1
-LEVEL_LOAD_OPTION = 2
-EXIT_OPTION = 3
+EXIT_OPTION = 1
 
 MENU_STAGE = 0
 LEVEL_CHOOSE_STAGE = 1
@@ -63,6 +67,7 @@ EXIT_STAGE = 5
 def terminate():
     pygame.quit()
     sys.exit()
+
 
 def render_text(content, size, x, y):
     font = pygame.font.Font(MAIN_FONT, size)
@@ -77,11 +82,16 @@ class MainMenu:
         self.cursor_pos = 0
         self.cursor = '*'
         self.cursor_size = 80
-        self.options = ["Начать игру", "Создать уровень", "Загрузить уровень", "Выйти"]
+        self.options = ["Начать игру", "Выйти"]
         self.offset = 70
         self.option_size = 30
         self.cursor_x = 130
         self.cursor_y = 240
+        self.reset_window()
+
+    def reset_window(self):
+        global screen
+        screen = pygame.display.set_mode((WIDTH, int(MID_H * 1.5)))
 
     def draw_cursor(self):
         render_text(self.cursor, 80, self.cursor_x,
@@ -106,11 +116,7 @@ class MainMenu:
         if self.cursor_pos == EXIT_OPTION:
             terminate()
         elif self.cursor_pos == START_OPTION:
-            cur_stage = LEVEL_CHOOSE_STAGE
-        elif self.cursor_pos == LEVEL_CREATE_OPTION:
-            cur_stage = LEVEL_CREATE_STAGE
-        elif self.cursor_pos == LEVEL_LOAD_OPTION:
-            cur_stage = LEVEL_LOAD_STAGE
+            cur_stage = LEVEL_PLAY_STAGE
 
     def run(self):
         running = True
@@ -1026,13 +1032,13 @@ class Level:
 if __name__ == "__main__":
     game_loop_active = True
     cur_stage = MENU_STAGE
-    cur_level = "null"
+    cur_level = "saws2"
 
     while game_loop_active:
         if cur_stage == MENU_STAGE:
             menu = MainMenu()
             menu.run()
-        elif cur_stage == LEVEL_PLAY_STAGE:
+        if cur_stage == LEVEL_PLAY_STAGE:
             path = f"../data/levels/{cur_level}.json"
             with open(path, 'r', encoding='utf-8') as file:
                 # noinspection PyMethodFirstArgAssignment
