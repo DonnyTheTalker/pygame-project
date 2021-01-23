@@ -202,7 +202,7 @@ class Main(QMainWindow):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] * self.level.CELL_SIZE}",
                            f"y={pos[1] * self.level.CELL_SIZE}",
-                           f"spritesheet='{self.current_enemy}'",
+                           f"spritesheet='spritesheet1.png'",
                            f"speed={self.SpeedSpinBox.value()}",
                            f"points={self.points}"]
         self.add_sprite(pos)
@@ -211,7 +211,7 @@ class Main(QMainWindow):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
-                           f"spritesheet='{self.current_enemy}'",
+                           f"spritesheet='spritesheet1.png'",
                            f"length={self.ChainSpinBox.value()}",
                            f"direction={self.DirectionSpinBox.value()}",
                            f"speed={self.SpeedSpinBox.value()}"]
@@ -221,7 +221,7 @@ class Main(QMainWindow):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
-                           f"spritesheet='{self.current_enemy}'",
+                           f"spritesheet='spritesheet1.png'",
                            f"speed={self.SpeedSpinBox.value()}"]
         self.add_sprite(pos)
 
@@ -229,14 +229,14 @@ class Main(QMainWindow):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
-                           f"spritesheet='{self.current_enemy}'"]
+                           f"spritesheet='spritesheet1.png'"]
         self.add_sprite(pos)
 
     def push_shooting_enemy(self, pos):
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
-                           f"spritesheet='{self.current_enemy}'",
+                           f"spritesheet='spritesheet1.png'",
                            f"bullet_speed={self.BulletSpinBox.value()}",
                            f"bullet_image='{self.bullet_image}'"]
         if self.smartradioButton.isChecked():
@@ -337,6 +337,8 @@ class Main(QMainWindow):
     def paint(self):
         self.screen.fill(pygame.Color("white"))
         if self.displayMode.isChecked():
+            for sprite in self.level.all_sprites.sprites():
+                pygame.draw.rect(self.screen, "red", sprite.rect)
             self.level.draw(self.screen)
         else:
             self.layer.draw(self.screen)
@@ -376,6 +378,7 @@ class Main(QMainWindow):
         if self.layer == self.level.enemy_group:
             self.parameters.append("groups=[self.level.all_sprites, self.level.enemy_group]")
             enemy = f"{self.enemy_class}({', '.join(self.parameters)})"
+            print(enemy)
             exec(enemy)
         else:
             image = self.level.tiles[self.current_tile]

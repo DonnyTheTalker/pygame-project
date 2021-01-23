@@ -131,6 +131,7 @@ def main_decoder(dct):
 
 class MainEncoder(json.JSONEncoder):
     def default(self, o):
+        name = type(o).__name__
         if isinstance(o, Level):
             return {"__Level__": True, "grid_size": o.grid_size, "CELL_SIZE": o.CELL_SIZE,
                     "background_group": o.background_group.sprites(),
@@ -143,19 +144,19 @@ class MainEncoder(json.JSONEncoder):
             return {"x": o.rect.x,
                     "y": o.rect.y,
                     "coords": o.coords}
-        elif isinstance(o, Obstacle):
+        elif name == "Obstacle":
             return {"__Obstacle__": True,
                     "x": o.x,
                     "y": o.y,
                     "damage": o.damage,
                     "spritesheet": o.spritesheet}
-        elif isinstance(o, Saw):
+        elif name == "Saw":
             return {"__Saw__": True,
                     "x": o.x,
                     "y": o.y,
                     "damage": o.damage,
                     "spritesheet": o.spritesheet}
-        elif isinstance(o, ShootingEnemy):
+        elif name == "ShootingEnemy":
             return {"__ShootingEnemy__": True,
                     "x": o.x,
                     "y": o.y,
@@ -165,7 +166,7 @@ class MainEncoder(json.JSONEncoder):
                     "bullet_speed": o.bullet_speed,
                     "all_sides": o.all_sides,
                     "smart": o.smart}
-        elif isinstance(o, RotatingSaw):
+        elif name == "RotatingSaw":
             return {"__RotatingSaw__": True,
                     "x": o.x,
                     "y": o.y,
@@ -174,21 +175,21 @@ class MainEncoder(json.JSONEncoder):
                     "spritesheet": o.spritesheet,
                     "speed": o.speed,
                     "direction": o.direction}
-        elif isinstance(o, HATEnemy):
+        elif name == "HATEnemy":
             return {"__HATEnemy__": True,
                     "spritesheet": o.spritesheet,
                     "x": o.x,
                     "y": o.y,
                     "damage": o.damage,
                     "speed": o.speed}
-        elif isinstance(o, HATSaw):
+        elif name == "HATSaw":
             return {"__HATSaw__": True,
                     "spritesheet": o.spritesheet,
                     "x": o.x,
                     "y": o.y,
                     "damage": o.damage,
                     "speed": o.speed}
-        elif isinstance(o, MovingEnemy):
+        elif name == "MovingEnemy":
             return {"__MovingEnemy__": True,
                     "x": o.x,
                     "y": o.y,
@@ -651,14 +652,14 @@ class ShootingEnemy(AnimatedSprite):
 
 class HATEnemy(AnimatedSprite):
     def __init__(self, spritesheet, x, y, damage, speed, groups):
-        super().__init__(spritesheet, x, y, *groups)
+        self.speed = speed
+        self.gravity = 5
         self.damage = damage
+        super().__init__(spritesheet, x, y, *groups)
+        self.set_status(SpriteStates.MOVING, True if self.speed > 0 else False)
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
         self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
                                                self.rect.y + self.addition_y)
-        self.speed = speed
-        self.set_status(SpriteStates.MOVING, True if self.speed > 0 else False)
-        self.gravity = 5
 
     def get_collisions(self):
         return pygame.sprite.spritecollide(self, tiles_sprites, False)
@@ -694,7 +695,7 @@ class HATEnemy(AnimatedSprite):
 class HATSaw(HATEnemy):
     def __init__(self, spritesheet, x, y, damage, speed, groups):
         super().__init__(spritesheet, x, y, damage, speed, groups)
-        self.set_status(SpriteStates.IDLE, True if self.speed > 0 else False)
+        self.set_status(SpriteStates.IDLE)
 
     def update(self):
         super().update()
