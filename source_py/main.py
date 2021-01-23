@@ -1,5 +1,4 @@
 from typing import List, Any, Union
-
 import pygame
 import os
 import sys
@@ -8,13 +7,20 @@ import inspect
 import json
 from copy import deepcopy
 from math import sin, cos
+from functools import partial
+from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
+from PyQt5.QtWidgets import QMainWindow, QFileDialog
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QIcon
 
+os.environ['SDL_VIDEO_WINDOW_POS'] = '0,30'
 pygame.init()
-SIZE = WIDTH, HEIGHT = 800, 600
-MID_W = WIDTH // 2
-MID_H = HEIGHT // 2
+screen = pygame.display.set_mode((1, 1))
 
-tile_width = tile_height = 24
+TILE_WIDTH = TILE_HEIGHT = 24
+GAME_NAME = "Первый научный платформер"
+
 FPS = 60
 EAST = 0
 SE = 1
@@ -32,37 +38,569 @@ FRAME = 0
 MAX_BULLET_SPEED = 5
 LAST_HIT_TIME = 0
 
-GAME_NAME = "Первый научный платформер"
-screen = pygame.display.set_mode(SIZE)
-pygame.display.set_caption(GAME_NAME)
-clock = pygame.time.Clock()
 
-background_sound = "../data/sounds/background.mp3"
-pygame.mixer.pre_init(44100, -16, 2, 512)
-pygame.mixer.music.load(background_sound)
-pygame.mixer.music.set_volume(50)
-pygame.mixer.music.play(-1)
+def load_icon(name):
+    return QIcon(f"../data/images/{name}")
 
-MAIN_FONT = pygame.font.get_default_font()
-FONT_COLOR = pygame.Color("white")
-MENU_BACKGROUND_COLOR = pygame.Color(110, 176, 159)
 
-START_OPTION = 0
-LEVEL_CREATE_OPTION = 1
-LEVEL_LOAD_OPTION = 2
-EXIT_OPTION = 3
+class Designer(QMainWindow):
+    current_tile: str
 
-MENU_STAGE = 0
-LEVEL_CHOOSE_STAGE = 1
-LEVEL_CREATE_STAGE = 2
-LEVEL_LOAD_STAGE = 3
-LEVEL_PLAY_STAGE = 4
-EXIT_STAGE = 5
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        pygame.init()
+        self.screen = pygame.display.set_mode((1, 1))
+        # self.setupUi(self)
+        uic.loadUi("../data/UI files/designer.ui", self)
+        self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"  # кодовые символы
+        self.timer = QTimer(self)
+        self.tile_buttons = QButtonGroup(self)
+        self.holding = None
+        self.mark_group = [self.damage_active, self.speed_active,
+                           self.points_active, self.chainlen_active,
+                           self.direction_active, self.sides_active, self.bulletspeed_active,
+                           self.smart_active]
+        self.idle_marks = [0]
+        self.shooting_marks = [0, 5, 6, 7]
+        self.rotating_marks = [0, 1, 3, 4]
+        self.moving_marks = [0, 1, 2]
+        self.hat_marks = [0, 1]
+        self.parameters = []
+        self.sides = []
+        self.points = []
+        self.enemy_class = "Obstacles"
+        self.bullet_image = "bullet.png"
+        self.enemies_spritesheets = {"Obstacle": ["spike1.png", "fire1.png", "kust3.png"],
+                                     "MovingEnemy": ["bag.png", "flying_dragon1.png"],
+                                     "ShootingEnemy": [["black_hole.png", "bullet.png"],
+                                                       ["black_hole2.png", "bat2.png"]],
+                                     "HATEnemy": ["big_cats.png", "skeleton.png"],
+                                     "HATSaw": ["hat_saw.png", "hat_saw2.png"],
+                                     "RotatingSaw": ["saw.png", "saw2.png"],
+                                     "Saw": ["saw.png", "saw2.png"],
+                                     }
+        self.obstacles_images = ["spike.png", "fire_image.png", "kust_image.png"]
+        self.shooting_images = ["black_hole_image.png", "black_hole_2_image.png"]
+        self.hat_enemy_images = ["big_cat_image.png", "skeleton_image.png"]
+        self.hat_saw_images = ["saw_image.png", "saw2_image.png"]
+        self.default_saw_images = ["saw_image.png", "saw2_image.png"]
+        self.rotating_saw_images = ["saw_image.png", "saw2_image.png"]
+        self.moving_images = ["bag_image.png", "dragon_image.png"]
+        self.current_enemy = ""
+        self.level = Level()
+        self.initUI()
+        self.get_size()
+        self.timer.start(10)
+        self.tiles_button.click()
+
+    def initUI(self):
+        self.setWindowTitle("Дизайнер уровней")
+        self.setGeometry(1200, 200, self.width(), self.height())
+        y_offset = self.height()
+        self.resizeButton.clicked.connect(self.get_size)
+        self.arrows.buttonClicked.connect(self.move_surface)
+        self.layerButtons.addButton(self.enemy_button)
+        self.layerButtons.buttonClicked.connect(self.change_layer)
+        self.timer.timeout.connect(self.check_events)
+        self.actionopen.triggered.connect(self.open)
+        self.actionsave.triggered.connect(self.save)
+        self.playerButtons.buttonClicked.connect(self.select_tile)
+        self.clear_points.clicked.connect(self.clear_all_points)
+        for i, tile_code in enumerate(self.level.tiles):
+            button = QPushButton(tile_code, self)
+            button.resize(self.level.CELL_SIZE, self.level.CELL_SIZE)
+            button.move(20 + i % 10 * (self.level.CELL_SIZE + 10),
+                        y_offset + i // 10 * (self.level.CELL_SIZE + 10))
+            self.tile_buttons.addButton(button)
+        self.setFixedSize(max(self.width(), 20 + 10 * (self.level.CELL_SIZE + 10)),
+                          y_offset + i // 10 * (self.level.CELL_SIZE + 10) + button.height() + 10)
+        self.tile_buttons.buttonClicked.connect(self.select_tile)
+        self.tile_buttons.buttons()[0].click()
+        self.accept_button.clicked.connect(self.accept_points)
+        self.hide_marks()
+        self.init_enemy_buttons(self.obstacles, "Obstacle", self.obstacles_images,
+                                self.create_obstacle, self.idle_marks)
+        self.init_enemy_buttons(self.default_saw_group, "Saw", self.default_saw_images,
+                                self.create_obstacle, self.idle_marks)
+        self.init_enemy_buttons(self.shooting_group, "ShootingEnemy", self.shooting_images,
+                                self.create_shooting_enemy, self.shooting_marks)
+        self.init_enemy_buttons(self.rotating_group, "RotatingSaw", self.rotating_saw_images,
+                                self.create_obstacle, self.rotating_marks)
+        self.init_enemy_buttons(self.hat_enemy_group, "HATEnemy", self.hat_enemy_images,
+                                self.create_obstacle, self.hat_marks)
+        self.init_enemy_buttons(self.hat_saw_group, "HATSaw", self.hat_saw_images,
+                                self.create_obstacle, self.hat_marks)
+        self.init_enemy_buttons(self.moving_enemy_group, "MovingEnemy", self.moving_images,
+                                self.create_moving_enemy, self.moving_marks)
+
+    def correct_points(self, pos):
+        pos = [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
+        if pos[0] >= self.level.grid_width:
+            return False
+        if self.points:
+            return pos[0] == self.points[-1][0] or pos[1] == self.points[-1][1]
+        return True
+
+    def get_point(self, pos):
+        return [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
+
+    def print_points(self):
+        print(self.points)
+
+    def clear_all_points(self):
+        self.points.clear()
+
+    def accept_points(self):
+        if len(self.points) >= 2:
+            self.push_moving_enemy()
+            self.points = []
+        else:
+            print("Надо назначить 2 и более точек")
+
+    def hide_marks(self):
+        for mark in self.mark_group:
+            mark.hide()
+
+    def set_state(self, group, val):
+        enemy_buttons_groups = [self.obstacles.buttons(), self.default_saw_group.buttons(),
+                                self.shooting_group.buttons(), self.hat_enemy_group.buttons(),
+                                self.rotating_group.buttons(), self.hat_saw_group.buttons(),
+                                self.moving_enemy_group.buttons(), self.control_buttons.buttons(),
+                                self.sides_group.buttons(),
+                                [self.DamageSpinBox, self.SpeedSpinBox, self.ChainSpinBox,
+                                 self.DirectionSpinBox, self.BulletSpinBox, self.smartradioButton]]
+        tiles_buttons_groups = [self.playerButtons.buttons()]
+        alltiles_buttons_groups = ([self.arrows.buttons(), self.tile_buttons.buttons()] +
+                                   tiles_buttons_groups)
+        for buttons_group in (alltiles_buttons_groups if group == 'alltiles' else
+        (tiles_buttons_groups if group == "tiles" else enemy_buttons_groups)):
+            for button in buttons_group:
+                button.setEnabled(val)
+
+    def create_obstacle(self, name, marks):
+        sender = self.sender()
+        self.hide_marks()
+        self.points = []
+        for i in marks:
+            self.mark_group[i].show()
+        self.parameters = []
+        self.enemy_class = name
+        self.current_enemy = self.enemies_spritesheets[name][int(sender.text())]
+
+    def create_shooting_enemy(self, name, marks):
+        sender = self.sender()
+        self.hide_marks()
+        self.points = []
+        for i in marks:
+            self.mark_group[i].show()
+        self.parameters = []
+        self.sides = []
+        self.enemy_class = name
+        self.current_enemy = self.enemies_spritesheets[name][int(sender.text())][0]
+        self.bullet_image = self.enemies_spritesheets[name][int(sender.text())][1]
+
+    def create_moving_enemy(self, name, marks):
+        sender = self.sender()
+        self.hide_marks()
+        for i in marks:
+            self.mark_group[i].show()
+        self.parameters = []
+        self.points = []
+        self.enemy_class = name
+        self.current_enemy = self.enemies_spritesheets[name][int(sender.text())]
+
+    def push_moving_enemy(self):
+        pos = self.points[0]
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] * self.level.CELL_SIZE}",
+                           f"y={pos[1] * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'",
+                           f"speed={self.SpeedSpinBox.value()}",
+                           f"points={self.points}"]
+        self.add_sprite(pos)
+
+    def push_rotating_saw(self, pos):
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'",
+                           f"length={self.ChainSpinBox.value()}",
+                           f"direction={self.DirectionSpinBox.value()}",
+                           f"speed={self.SpeedSpinBox.value()}"]
+        self.add_sprite(pos)
+
+    def push_hat_enemy(self, pos):
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'",
+                           f"speed={self.SpeedSpinBox.value()}"]
+        self.add_sprite(pos)
+
+    def push_obstacle(self, pos):
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'"]
+        self.add_sprite(pos)
+
+    def push_shooting_enemy(self, pos):
+        self.parameters = [f"damage={self.DamageSpinBox.value()}",
+                           f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
+                           f"spritesheet='{self.current_enemy}'",
+                           f"bullet_speed={self.BulletSpinBox.value()}",
+                           f"bullet_image='{self.bullet_image}'"]
+        if self.smartradioButton.isChecked():
+            self.parameters.append("smart=True")
+        else:
+            for button in self.sides_group.buttons():
+                if button.isChecked():
+                    self.push_side(button.text())
+            self.parameters.append(f"all_sides=[{', '.join(self.sides)}]")
+            self.parameters.append("smart=False")
+        self.add_sprite(pos)
+
+    def push_side(self, number):
+        if number not in self.sides:
+            self.sides.append(number)
+
+    @staticmethod
+    def init_enemy_buttons(group, name, images, function, marks):
+        i = 0
+        for button in group.buttons():
+            button.setText(f"{i}")
+            button.setIcon(load_icon(images[i]))
+            button.clicked.connect(partial(function, name, marks))
+            i += 1
+
+    def init_screen(self):
+        self.screen = pygame.display.set_mode(
+            ((self.level.grid_width + 1) * self.level.CELL_SIZE,
+             self.level.grid_height * self.level.CELL_SIZE))
+        self.paint()
+
+    def get_size(self):
+        width, height = self.widthBox.value(), self.heightBox.value()
+        self.level.grid_size = self.level.grid_width, self.level.grid_height = width, height
+        self.resize_window()
+
+    def resize_window(self):
+        self.init_screen()
+        self.delete_abroad()
+        self.paint()
+
+    def change_layer(self, button):
+        if button.text() == "enemy":
+            self.set_state("enemy", True)
+            self.set_state("alltiles", False)
+        elif button.text() == 'tiles':
+            self.set_state("enemy", False)
+            self.set_state("alltiles", True)
+        else:
+            self.set_state("enemy", False)
+            self.set_state("alltiles", True)
+            self.set_state("tiles", False)
+        query = f'self.layer = self.level.{button.text()}_group'
+        exec(query)
+
+    def select_tile(self, button):
+        self.current_tile = button.text()
+
+    def move_surface(self, key):
+        encode = {"↑": (0, -1), "→": (1, 0), "↓": (0, 1), "←": (-1, 0)}
+        dx, dy = encode[key.text()]
+        for sprite in self.layer.sprites():
+            sprite.rect = sprite.rect.move(dx * self.level.CELL_SIZE, dy * self.level.CELL_SIZE)
+        self.delete_abroad()
+
+    def check_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.close()
+                return
+            if event.type == pygame.MOUSEBUTTONUP:
+                self.holding = None
+            if self.layer == self.level.enemy_group:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        if self.enemy_class == "Obstacle" or self.enemy_class == "Saw":
+                            self.push_obstacle(event.pos)
+                        elif self.enemy_class == "ShootingEnemy":
+                            self.push_shooting_enemy(event.pos)
+                        elif self.enemy_class == "RotatingSaw":
+                            self.push_rotating_saw(event.pos)
+                        elif self.enemy_class == "HATEnemy" or self.enemy_class == "HATSaw":
+                            self.push_hat_enemy(event.pos)
+                        elif self.enemy_class == "MovingEnemy":
+                            if self.correct_points(event.pos):
+                                self.points.append(self.get_point(event.pos))
+                    elif event.button == 3:
+                        self.del_sprite(event.pos)
+            else:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.holding = event.button
+                    if self.holding == 1:
+                        self.add_sprite(event.pos)
+                    elif self.holding == 3:
+                        self.del_sprite(event.pos)
+                if event.type == pygame.MOUSEMOTION and not (self.holding is None):
+                    if self.holding == 1:
+                        self.add_sprite(event.pos)
+                    elif self.holding == 3:
+                        self.del_sprite(event.pos)
+        self.paint()
+
+    def paint(self):
+        self.screen.fill(pygame.Color("white"))
+        if self.displayMode.isChecked():
+            # for sprite in self.level.all_sprites.sprites():
+            # pygame.draw.rect(self.screen, "red", sprite.rect)
+            self.level.draw(self.screen)
+            if self.level.start:
+                self.screen.blit(Flag.image, (self.level.start.rect.x, self.level.start.rect.y))
+        else:
+            self.layer.draw(self.screen)
+        if self.current_tile == "Start":
+            image = Flag.image
+        elif self.current_tile == "Finish":
+            image = Scroll.image
+        else:
+            image = self.level.tiles[self.current_tile]
+        self.screen.blit(image,
+                         (self.level.grid_width * self.level.CELL_SIZE, 0))
+        if self.gridMode.isChecked():
+            color = pygame.Color("red")
+            for i in range(1, self.level.grid_width + 1):
+                pygame.draw.line(self.screen, color,
+                                 (i * self.level.CELL_SIZE, 0),
+                                 (i * self.level.CELL_SIZE,
+                                  self.level.grid_height * self.level.CELL_SIZE), 1)
+            for j in range(1, self.level.grid_height):
+                pygame.draw.line(self.screen, color, (0, j * self.level.CELL_SIZE),
+                                 (self.level.grid_width * self.level.CELL_SIZE,
+                                  j * self.level.CELL_SIZE), 1)
+            for point in self.points:
+                pygame.draw.line(self.screen, (0, 0, 255),
+                                 (point[0] * self.level.CELL_SIZE + 3,
+                                  point[1] * self.level.CELL_SIZE + 3),
+                                 (point[0] * self.level.CELL_SIZE + self.level.CELL_SIZE - 6,
+                                  point[1] * self.level.CELL_SIZE + self.level.CELL_SIZE - 4), 2)
+                pygame.draw.line(self.screen, (0, 0, 255),
+                                 (point[0] * self.level.CELL_SIZE + 3,
+                                  point[1] * self.level.CELL_SIZE + self.level.CELL_SIZE - 4),
+                                 (point[0] * self.level.CELL_SIZE + self.level.CELL_SIZE - 6,
+                                  point[1] * self.level.CELL_SIZE + 3), 2)
+        pygame.display.flip()
+
+    def add_sprite(self, pos):
+        x, y = pos
+        x = x // self.level.CELL_SIZE * self.level.CELL_SIZE
+        y = y // self.level.CELL_SIZE * self.level.CELL_SIZE
+        if x // self.level.CELL_SIZE >= self.level.grid_width:
+            return
+        self.del_sprite(pos)
+        if self.layer == self.level.enemy_group:
+            self.parameters.append("groups=[self.level.all_sprites, self.level.enemy_group]")
+            enemy = f"{self.enemy_class}({', '.join(self.parameters)})"
+            exec(enemy)
+            pygame.sprite.spritecollide(self.level.enemy_group.sprites()[-1],
+                                        self.level.tiles_group, True)
+        else:
+            if self.current_tile == "Start":
+                if self.layer == self.level.tiles_group:
+                    if (x + Flag.image.get_width() >
+                            self.level.grid_width * self.level.CELL_SIZE or
+                            y + Flag.image.get_height() >
+                            self.level.grid_height * self.level.CELL_SIZE):
+                        return
+                    if self.level.start:
+                        self.level.start.kill()
+                        self.level.start = None
+                    self.level.start = Flag(x, y, self.level.all_sprites)
+                    pygame.sprite.spritecollide(self.level.start, self.level.tiles_group, True)
+            elif self.current_tile == "Finish":
+                if self.layer == self.level.tiles_group:
+                    if (x + Scroll.image.get_width() >
+                            self.level.grid_width * self.level.CELL_SIZE or
+                            y + Scroll.image.get_height() >
+                            self.level.grid_height * self.level.CELL_SIZE):
+                        return
+                    if self.level.finish:
+                        self.level.finish.kill()
+                        self.level.finish = None
+                    self.level.finish = Scroll(x, y, self.level.all_sprites)
+                    pygame.sprite.spritecollide(self.level.finish, self.level.tiles_group, True)
+            else:
+                image = self.level.tiles[self.current_tile]
+                Tile(image, x, y, self.level.navigate[image], self.level.all_sprites, self.layer)
+
+    def del_sprite(self, pos):
+        x, y = pos
+        x = x // self.level.CELL_SIZE * self.level.CELL_SIZE
+        y = y // self.level.CELL_SIZE * self.level.CELL_SIZE
+        for sprite in self.layer.sprites():
+            if sprite.rect.collidepoint(pos[0], pos[1]):
+                sprite.kill()
+        if self.layer == self.level.tiles_group:
+            if self.level.start and self.level.start.rect.collidepoint(x, y):
+                self.level.start.kill()
+                self.level.start = None
+            if self.level.finish and self.level.finish.rect.collidepoint(x, y):
+                self.level.finish.kill()
+                self.level.finish = None
+
+    def delete_abroad(self):
+        if (self.level.start and
+                not ((self.level.start.rect.left >= 0 and
+                      self.level.start.rect.right <=
+                      self.level.grid_width * self.level.CELL_SIZE) and
+                     (self.level.start.rect.top >= 0 and
+                      self.level.start.rect.bottom <=
+                      self.level.grid_height * self.level.CELL_SIZE))):
+            self.level.start.kill()
+            self.level.start = None
+        if (self.level.finish and
+                not ((self.level.finish.rect.left >= 0 and
+                      self.level.finish.rect.right <=
+                      self.level.grid_width * self.level.CELL_SIZE) and
+                     (self.level.finish.rect.top >= 0 and
+                      self.level.finish.rect.bottom <=
+                      self.level.grid_height * self.level.CELL_SIZE))):
+            self.level.finish.kill()
+            self.level.finish = None
+        for sprite in self.level.all_sprites.sprites():
+            if not ((sprite.rect.left >= 0 and
+                     sprite.rect.right <= self.level.grid_width * self.level.CELL_SIZE) and
+                    (sprite.rect.top >= 0 and
+                     sprite.rect.bottom <= self.level.grid_height * self.level.CELL_SIZE)):
+                sprite.kill()
+
+    def save(self):
+        name = self.nameEdit.text()
+        if not name:
+            print("Ошибка ввода имени")
+            return
+        if not (self.level.start and self.level.finish):
+            self.statusBar().showMessage("Не выбраны точки старта и финиша")
+            return
+        self.statusBar().hide()
+        with open(f'../data/custom_levels/{name}.json', 'w', encoding='utf-8') as file:
+            json.dump(self.level, file, cls=MainEncoder)
+
+    def open(self):
+        path = QFileDialog.getOpenFileName(self, 'Выбрать уровень', '')[0]
+        if not path:
+            print("Ошибка выбора файла")
+            return
+        with open(path, 'r', encoding='utf-8') as file:
+            self.level = json.load(file, object_hook=main_decoder)
+        self.tiles_button.click()
+        self.resize_window()
+        self.nameEdit.setText(path.split('/')[-1].split('.')[0])
+        self.widthBox.setValue(self.level.grid_width)
+        self.heightBox.setValue(self.level.grid_height)
+
+    def closeEvent(self, event):
+        self.timer.stop()
+        pygame.quit()
+        if self.parent():
+            self.parent().show()
+        super().closeEvent(event)
+
+
+class Selecter(QMainWindow):
+    def __init__(self, dir="custom_levels", parent=None):
+        super().__init__(parent)
+        self.path = f"../data/{dir}/"
+        # self.setupUi(self)
+        uic.loadUi("../data/UI files/selecter.ui", self)
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle("Выбор уровня")
+        self.levels_list.itemDoubleClicked.connect(self.select_level)
+        self.levels_list.addItems(map(lambda name: name.split(".")[0],
+                                      os.listdir(self.path)))
+
+    def select_level(self, item):
+        self.hide()
+        self.parent().load_level(self.path + item.text())
+        self.close()
+
+    def closeEvent(self, event):
+        if self.parent():
+            self.parent().show()
+        super().closeEvent(event)
+
+
+class Menu(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        # self.setupUi(self)
+        uic.loadUi("../data/UI files/menu.ui", self)
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle(GAME_NAME)
+        self.startButton.clicked.connect(partial(self.select_level, "story_levels"))
+        self.loadButton.clicked.connect(partial(self.select_level, "custom_levels"))
+        self.createButton.clicked.connect(self.start_creating)
+        self.exitButton.clicked.connect(self.close)
+
+    def start_creating(self):
+        designer = Designer(self)
+        designer.show()
+        self.hide()
+
+    def select_level(self, dir="custom_levels"):
+        selecter = Selecter(dir, self)
+        selecter.show()
+        self.hide()
+
+    @staticmethod
+    def load_level(path):
+        global FRAME
+        pygame.init()
+        screen = pygame.display.set_mode((1, 1))
+        background_sound = "../data/sounds/background.mp3"
+        pygame.mixer.pre_init(44100, -16, 2, 512)
+        pygame.mixer.music.load(background_sound)
+        pygame.mixer.music.set_volume(50)
+        pygame.mixer.music.play(-1)
+        path += '.json'
+        with open(path, 'r', encoding='utf-8') as file:
+            level = json.load(file, object_hook=main_decoder)
+            level.spawn_player()
+        screen = pygame.display.set_mode((level.grid_width * TILE_WIDTH,
+                                          level.grid_height * TILE_HEIGHT))
+        pygame.display.set_caption(GAME_NAME)
+        clock = pygame.time.Clock()
+        running = True
+        delay = clock.tick(FPS)
+        while running:
+            for cur_event in pygame.event.get():
+                if cur_event.type == pygame.QUIT:
+                    running = False
+                if cur_event.type == pygame.KEYDOWN or cur_event.type == pygame.KEYUP:
+                    level.event_handling(cur_event)
+            level.update()
+            level.check_enemies()
+            screen.fill(pygame.Color("white"))
+            level.draw(screen)
+            delay = clock.tick(FPS)
+            pygame.display.flip()
+            if level.check_scroll():
+                print("YOU WIN")
+                running = False
+            FRAME = (FRAME + 1) % MAX_BULLET_SPEED
+        pygame.quit()
 
 
 def terminate():
     pygame.quit()
     sys.exit()
+
 
 def render_text(content, size, x, y):
     font = pygame.font.Font(MAIN_FONT, size)
@@ -70,69 +608,6 @@ def render_text(content, size, x, y):
     text = surface.get_rect()
     text.center = (x, y)
     screen.blit(surface, text)
-
-
-class MainMenu:
-    def __init__(self):
-        self.cursor_pos = 0
-        self.cursor = '*'
-        self.cursor_size = 80
-        self.options = ["Начать игру", "Создать уровень", "Загрузить уровень", "Выйти"]
-        self.offset = 70
-        self.option_size = 30
-        self.cursor_x = 130
-        self.cursor_y = 240
-
-    def draw_cursor(self):
-        render_text(self.cursor, 80, self.cursor_x,
-                    self.cursor_y + self.offset * self.cursor_pos)
-
-    def draw_heading(self):
-        render_text(GAME_NAME, 40, MID_W, 50)
-
-    def draw_options(self):
-        cur_x, cur_y = MID_W, 220
-        for option in self.options:
-            render_text(option, self.option_size, cur_x, cur_y)
-            cur_y += self.offset
-
-    def move_cursor(self, direction):
-        self.cursor_pos = ((self.cursor_pos + direction) %
-                           len(self.options) + len(self.options)) \
-                          % len(self.options)
-
-    def choose_option(self):
-        global cur_stage
-        if self.cursor_pos == EXIT_OPTION:
-            terminate()
-        elif self.cursor_pos == START_OPTION:
-            cur_stage = LEVEL_CHOOSE_STAGE
-        elif self.cursor_pos == LEVEL_CREATE_OPTION:
-            cur_stage = LEVEL_CREATE_STAGE
-        elif self.cursor_pos == LEVEL_LOAD_OPTION:
-            cur_stage = LEVEL_LOAD_STAGE
-
-    def run(self):
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        self.move_cursor(-1)
-                    elif event.key == pygame.K_DOWN:
-                        self.move_cursor(1)
-                    elif event.key == pygame.K_RETURN:
-                        self.choose_option()
-                        running = False
-
-            screen.fill(MENU_BACKGROUND_COLOR)
-            self.draw_heading()
-            self.draw_options()
-            self.draw_cursor()
-            pygame.display.flip()
-        screen.fill(pygame.Color("black"))
 
 
 def load_image(name, colorkey=None):
@@ -174,24 +649,24 @@ def cut_sheets(sheet, names, cell_size, columns, rows):
 
 def real_coords(coord, x=False, y=False):
     if x and y:
-        return coord * tile_width, coord * tile_height
+        return coord * TILE_WIDTH, coord * TILE_HEIGHT
     else:
         if x:
-            return coord * tile_width
+            return coord * TILE_WIDTH
         if y:
-            return coord * tile_height
+            return coord * TILE_HEIGHT
 
 
 def update_addition_center(unit):
-    addition_y = (unit.rect.centery // tile_height * tile_height +
-                  tile_height // 2 - unit.rect.centery)
-    addition_x = (unit.rect.centerx // tile_width * tile_width +
-                  tile_width // 2 - unit.rect.centerx)
+    addition_y = (unit.rect.centery // TILE_HEIGHT * TILE_HEIGHT +
+                  TILE_HEIGHT // 2 - unit.rect.centery)
+    addition_x = (unit.rect.centerx // TILE_WIDTH * TILE_WIDTH +
+                  TILE_WIDTH // 2 - unit.rect.centerx)
     return addition_x, addition_y
 
 
 def update_addition_all(width, height):
-    return tile_width - width, tile_height - height
+    return TILE_WIDTH - width, TILE_HEIGHT - height
 
 
 def main_decoder(dct):
@@ -620,7 +1095,6 @@ class Player(AnimatedSprite):
         if time.time() - LAST_HIT_TIME >= 1.5:
             LAST_HIT_TIME = time.time()
             self.hp -= damage
-            print(self.hp)
             if self.hp > 0:
                 pass
                 # self.status = SpriteStates.GET_DAMAGE
@@ -628,8 +1102,6 @@ class Player(AnimatedSprite):
             else:
                 self.kill()
                 self.level.spawn_player()
-                print("Убили!")
-                # Game over
 
     def event_handling(self, event):
         if event.type == pygame.KEYDOWN:
@@ -690,7 +1162,7 @@ class MovingEnemy(AnimatedSprite):
         self.side_point = 1
         self.side_state = 1
         self.set_status(self.all_states[0][0])
-        self.rect.center = (x + tile_width // 2, y + tile_height // 2)
+        self.rect.center = (x + TILE_WIDTH // 2, y + TILE_HEIGHT // 2)
         self.addition_x, self.addition_y = update_addition_center(self)
 
     def generate_states(self):
@@ -839,8 +1311,8 @@ class HATSaw(HATEnemy):
 class Bullet(AnimatedSprite):
     def __init__(self, x, y, speed, damage, spritesheet, sides=None):
         super().__init__(spritesheet, -100, -100, bullet_group)
-        self.rect = self.image.get_rect().move(x + tile_width // 2 - self.rect.width // 2,
-                                               y + tile_height // 2 - self.rect.height // 2)
+        self.rect = self.image.get_rect().move(x + TILE_WIDTH // 2 - self.rect.width // 2,
+                                               y + TILE_HEIGHT // 2 - self.rect.height // 2)
         if sides is None:
             sides = [1, 1]
         self.status = SpriteStates.IDLE
@@ -899,8 +1371,8 @@ class Obstacle(AnimatedSprite):
         if groups is None:
             groups = list()
         super().__init__(spritesheet, x, y, *groups)
-        # if self.rect.height < tile_height:
-        #    self.image.get_rect().move(self.rect.x, self.rect.y + tile_height - self.rect.height)
+        # if self.rect.height < TILE_HEIGHT:
+        #    self.image.get_rect().move(self.rect.x, self.rect.y + TILE_HEIGHT - self.rect.height)
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
         self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
                                                self.rect.y + self.addition_y)
@@ -912,7 +1384,7 @@ class Saw(Obstacle):
         if groups is None:
             groups = list()
         super().__init__(x, y, damage, spritesheet, groups)
-        self.rect.center = (x + tile_width // 2, y + tile_height // 2)
+        self.rect.center = (x + TILE_WIDTH // 2, y + TILE_HEIGHT // 2)
 
 
 class RotatingSaw(Saw):
@@ -920,8 +1392,8 @@ class RotatingSaw(Saw):
         if groups is None:
             groups = list()
         super().__init__(x, y, damage, spritesheet, groups)
-        self.center_x = x + tile_width // 2
-        self.center_y = -(y + tile_height // 2)
+        self.center_x = x + TILE_WIDTH // 2
+        self.center_y = -(y + TILE_HEIGHT // 2)
         self.length = max(length, 100)
         self.saw_x = self.center_x - length
         self.saw_y = -self.center_y
@@ -1023,40 +1495,9 @@ class Level:
                     self.player.get_damage(enemy.damage)
 
 
+pygame.quit()
 if __name__ == "__main__":
-    game_loop_active = True
-    cur_stage = MENU_STAGE
-    cur_level = "null"
-
-    while game_loop_active:
-        if cur_stage == MENU_STAGE:
-            menu = MainMenu()
-            menu.run()
-        elif cur_stage == LEVEL_PLAY_STAGE:
-            path = f"../data/levels/{cur_level}.json"
-            with open(path, 'r', encoding='utf-8') as file:
-                # noinspection PyMethodFirstArgAssignment
-                level = json.load(file, object_hook=main_decoder)
-                level.spawn_player()
-            screen = pygame.display.set_mode((level.grid_width * tile_width,
-                                              level.grid_height * tile_height))
-            running = True
-            delay = clock.tick(FPS)
-            while running:
-                for cur_event in pygame.event.get():
-                    if cur_event.type == pygame.QUIT:
-                        running = False
-                    if cur_event.type == pygame.KEYDOWN or cur_event.type == pygame.KEYUP:
-                        level.event_handling(cur_event)
-                level.update()
-                level.check_enemies()
-                screen.fill(pygame.Color("white"))
-                level.draw(screen)
-                delay = clock.tick(FPS)
-                pygame.display.flip()
-                if level.check_scroll():
-                    print("YOU WIN")
-                    running = False
-                FRAME = (FRAME + 1) % MAX_BULLET_SPEED
-            cur_stage = MENU_STAGE
-    terminate()
+    app = QApplication(sys.argv)
+    ex = Menu()
+    ex.show()
+    sys.exit(app.exec())
