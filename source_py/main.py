@@ -11,6 +11,9 @@ from math import sin, cos
 
 pygame.init()
 SIZE = WIDTH, HEIGHT = 800, 600
+MID_W = WIDTH // 2
+MID_H = HEIGHT // 2
+
 tile_width = tile_height = 24
 FPS = 60
 EAST = 0
@@ -29,13 +32,107 @@ FRAME = 0
 MAX_BULLET_SPEED = 5
 LAST_HIT_TIME = 0
 
+GAME_NAME = "Первый научный платформер"
 screen = pygame.display.set_mode(SIZE)
+pygame.display.set_caption(GAME_NAME)
 clock = pygame.time.Clock()
+
+background_sound = "../data/sounds/background.mp3"
+pygame.mixer.pre_init(44100, -16, 2, 512)
+pygame.mixer.music.load(background_sound)
+pygame.mixer.music.set_volume(50)
+pygame.mixer.music.play(-1)
+
+MAIN_FONT = pygame.font.get_default_font()
+FONT_COLOR = pygame.Color("white")
+MENU_BACKGROUND_COLOR = pygame.Color(110, 176, 159)
+
+START_OPTION = 0
+LEVEL_CREATE_OPTION = 1
+LEVEL_LOAD_OPTION = 2
+EXIT_OPTION = 3
+
+MENU_STAGE = 0
+LEVEL_CHOOSE_STAGE = 1
+LEVEL_CREATE_STAGE = 2
+LEVEL_LOAD_STAGE = 3
+LEVEL_PLAY_STAGE = 4
+EXIT_STAGE = 5
 
 
 def terminate():
     pygame.quit()
     sys.exit()
+
+def render_text(content, size, x, y):
+    font = pygame.font.Font(MAIN_FONT, size)
+    surface = font.render(content, True, FONT_COLOR)
+    text = surface.get_rect()
+    text.center = (x, y)
+    screen.blit(surface, text)
+
+
+class MainMenu:
+    def __init__(self):
+        self.cursor_pos = 0
+        self.cursor = '*'
+        self.cursor_size = 80
+        self.options = ["Начать игру", "Создать уровень", "Загрузить уровень", "Выйти"]
+        self.offset = 70
+        self.option_size = 30
+        self.cursor_x = 130
+        self.cursor_y = 240
+
+    def draw_cursor(self):
+        render_text(self.cursor, 80, self.cursor_x,
+                    self.cursor_y + self.offset * self.cursor_pos)
+
+    def draw_heading(self):
+        render_text(GAME_NAME, 40, MID_W, 50)
+
+    def draw_options(self):
+        cur_x, cur_y = MID_W, 220
+        for option in self.options:
+            render_text(option, self.option_size, cur_x, cur_y)
+            cur_y += self.offset
+
+    def move_cursor(self, direction):
+        self.cursor_pos = ((self.cursor_pos + direction) %
+                           len(self.options) + len(self.options)) \
+                          % len(self.options)
+
+    def choose_option(self):
+        global cur_stage
+        if self.cursor_pos == EXIT_OPTION:
+            terminate()
+        elif self.cursor_pos == START_OPTION:
+            cur_stage = LEVEL_CHOOSE_STAGE
+        elif self.cursor_pos == LEVEL_CREATE_OPTION:
+            cur_stage = LEVEL_CREATE_STAGE
+        elif self.cursor_pos == LEVEL_LOAD_OPTION:
+            cur_stage = LEVEL_LOAD_STAGE
+
+    def run(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        self.move_cursor(-1)
+                    elif event.key == pygame.K_DOWN:
+                        self.move_cursor(1)
+                    elif event.key == pygame.K_RETURN:
+                        self.choose_option()
+                        running = False
+
+            screen.fill(MENU_BACKGROUND_COLOR)
+            self.draw_heading()
+            self.draw_options()
+            self.draw_cursor()
+            pygame.display.flip()
+        screen.fill(pygame.Color("black"))
 
 
 def load_image(name, colorkey=None):
@@ -927,76 +1024,39 @@ class Level:
 
 
 if __name__ == "__main__":
-    background_sound = "../data/sounds/background.mp3"
-    pygame.mixer.pre_init(44100, -16, 2, 512)
-    pygame.mixer.music.load(background_sound)
-    pygame.mixer.music.set_volume(50)
-    pygame.mixer.music.play(-1)
-    # while True:
-    #     select = input("Какой цикл запустить? (1, 2, 3)").strip()
-    #     if select in ['1', '2', '3']:
-    #         break
-    #     else:
-    #         print("Ошибка ввода. Повторите ввод")
-    select = '2'
-    if select == '1':
-        pass
-        # running = True
-        # for i, cur_state in enumerate(SpriteStates.get_states()):
-        #     if i < 5:
-        #         player = Player("spritesheet1.png", 40 + i * 70, 40)
-        #         player.set_status(cur_state)
-        #         player = Player("spritesheet1.png", 40 + i * 70, 150)
-        #         player.set_status(cur_state, False)
-        #
-        # while running:
-        #     for event in pygame.event.get():
-        #         if event.type == pygame.QUIT:
-        #             running = False
-        #     delay = clock.tick(FPS)
-        #     screen.fill(pygame.Color("white"))
-        #     for sprite in player_sprites.sprites():
-        #         pygame.draw.rect(screen, "red", sprite.rect)
-        #         print(sprite.rect)
-        #     for sprite in player_sprites.sprites():
-        #         sprite.animate()
-        #     all_sprites.draw(screen)
-        #     pygame.display.flip()
-        # terminate()
-    elif select == '2':
-        level_name = "saws2"
-        path = f"../data/levels/{level_name}.json"
-        with open(path, 'r', encoding='utf-8') as file:
-            # noinspection PyMethodFirstArgAssignment
-            level = json.load(file, object_hook=main_decoder)
-            level.spawn_player()
-        screen = pygame.display.set_mode((level.grid_width * tile_width,
-                                          level.grid_height * tile_height))
-        running = True
-        delay = clock.tick(FPS)
-        while running:
-            for cur_event in pygame.event.get():
-                if cur_event.type == pygame.QUIT:
-                    running = False
-                if cur_event.type == pygame.KEYDOWN or cur_event.type == pygame.KEYUP:
-                    level.event_handling(cur_event)
-            level.update()
-            level.check_enemies()
-            screen.fill(pygame.Color("white"))
-            level.draw(screen)
+    game_loop_active = True
+    cur_stage = MENU_STAGE
+    cur_level = "null"
+
+    while game_loop_active:
+        if cur_stage == MENU_STAGE:
+            menu = MainMenu()
+            menu.run()
+        elif cur_stage == LEVEL_PLAY_STAGE:
+            path = f"../data/levels/{cur_level}.json"
+            with open(path, 'r', encoding='utf-8') as file:
+                # noinspection PyMethodFirstArgAssignment
+                level = json.load(file, object_hook=main_decoder)
+                level.spawn_player()
+            screen = pygame.display.set_mode((level.grid_width * tile_width,
+                                              level.grid_height * tile_height))
+            running = True
             delay = clock.tick(FPS)
-            pygame.display.flip()
-            if level.check_scroll():
-                print("YOU WIN")
-                running = False
-            FRAME = (FRAME + 1) % MAX_BULLET_SPEED
-        terminate()
-        # running = True
-        # while running:
-        #     for event in pygame.event.get():
-        #         if event.type == pygame.QUIT:
-        #             running = False
-        #     FRAME = (FRAME + 1) % MAX_BULLET_SPEED
-        #     pygame.display.flip()
-        #     clock.tick(FPS)
-        # terminate()
+            while running:
+                for cur_event in pygame.event.get():
+                    if cur_event.type == pygame.QUIT:
+                        running = False
+                    if cur_event.type == pygame.KEYDOWN or cur_event.type == pygame.KEYUP:
+                        level.event_handling(cur_event)
+                level.update()
+                level.check_enemies()
+                screen.fill(pygame.Color("white"))
+                level.draw(screen)
+                delay = clock.tick(FPS)
+                pygame.display.flip()
+                if level.check_scroll():
+                    print("YOU WIN")
+                    running = False
+                FRAME = (FRAME + 1) % MAX_BULLET_SPEED
+            cur_stage = MENU_STAGE
+    terminate()
