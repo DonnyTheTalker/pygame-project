@@ -265,7 +265,7 @@ class Tile(pygame.sprite.Sprite):
 
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, spritesheet, x, y, *groups):
-        super().__init__(all_sprites, *groups)
+        super().__init__(*groups)
         self.x = x
         self.y = y
         self.spritesheet = spritesheet
