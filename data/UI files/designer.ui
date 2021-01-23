@@ -449,6 +449,9 @@
       <height>16</height>
      </rect>
     </property>
+    <property name="maximum">
+     <number>100</number>
+    </property>
    </widget>
    <widget class="QSpinBox" name="SpeedSpinBox">
     <property name="geometry">
@@ -1045,13 +1048,13 @@
      <string>Игрок:</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>210</x>
       <y>500</y>
       <width>261</width>
-      <height>21</height>
+      <height>25</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -1111,21 +1114,21 @@
  <resources/>
  <connections/>
  <buttongroups>
+  <buttongroup name="layerButtons"/>
   <buttongroup name="sides_group">
    <property name="exclusive">
     <bool>false</bool>
    </property>
   </buttongroup>
-  <buttongroup name="moving_enemy_group"/>
-  <buttongroup name="rotating_group"/>
-  <buttongroup name="arrows"/>
-  <buttongroup name="obstacles"/>
-  <buttongroup name="hat_enemy_group"/>
-  <buttongroup name="default_saw_group"/>
-  <buttongroup name="layerButtons"/>
   <buttongroup name="hat_saw_group"/>
-  <buttongroup name="control_buttons"/>
-  <buttongroup name="shooting_group"/>
   <buttongroup name="playerButtons"/>
+  <buttongroup name="control_buttons"/>
+  <buttongroup name="rotating_group"/>
+  <buttongroup name="obstacles"/>
+  <buttongroup name="arrows"/>
+  <buttongroup name="default_saw_group"/>
+  <buttongroup name="moving_enemy_group"/>
+  <buttongroup name="shooting_group"/>
+  <buttongroup name="hat_enemy_group"/>
  </buttongroups>
 </ui>

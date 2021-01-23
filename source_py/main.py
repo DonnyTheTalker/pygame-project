@@ -31,12 +31,6 @@ LAST_HIT_TIME = 0
 
 screen = pygame.display.set_mode(SIZE)
 clock = pygame.time.Clock()
-all_sprites = pygame.sprite.Group()
-tiles_sprites = pygame.sprite.Group()
-player_sprites = pygame.sprite.Group()
-enemy_group = pygame.sprite.Group()
-bullet_group = pygame.sprite.Group()
-player = None  # ссылка на действующего объекта класса Player
 
 
 def terminate():
@@ -529,16 +523,18 @@ class Player(AnimatedSprite):
         if time.time() - LAST_HIT_TIME >= 1.5:
             LAST_HIT_TIME = time.time()
             self.hp -= damage
+            print(self.hp)
             if self.hp > 0:
                 pass
-                # player.status = SpriteStates.GET_DAMAGE
-                # player.update()
+                # self.status = SpriteStates.GET_DAMAGE
+                # self.update()
             else:
-                player.kill()
+                self.kill()
+                self.level.spawn_player()
                 print("Убили!")
                 # Game over
 
-    def update(self, event, *args):
+    def event_handling(self, event):
         if event.type == pygame.KEYDOWN:
             # При перемещении влево или вправо - меняем текущее направление персонажа
             # Также начианем движение персонажа в соответствующую сторону
@@ -563,11 +559,6 @@ class Player(AnimatedSprite):
         if self.moving_left or self.moving_right:
             self.cur_rotation = Player.RIGHT if self.moving_right else Player.LEFT
 
-    # Анимирование персонажа - ответственность базового
-    # Класса - AnimatedSprite
-    def animate(self):
-        AnimatedSprite.update(self)
-
     def update_status(self, is_sliding, in_air, cur_rotation, falling, moving):
         if is_sliding and in_air:
             super().set_status(SpriteStates.SLIDING, not cur_rotation == Player.RIGHT)
@@ -580,6 +571,11 @@ class Player(AnimatedSprite):
             super().set_status(SpriteStates.MOVING, cur_rotation == Player.RIGHT)
         else:
             super().set_status(SpriteStates.IDLE, cur_rotation == Player.RIGHT)
+
+    def update(self, *args):
+        self.update_movement()
+        self.move()
+        super().update(*args)
 
 
 class MovingEnemy(AnimatedSprite):
@@ -659,9 +655,6 @@ class MovingEnemy(AnimatedSprite):
         self.rect.x += int(self.state[1][0] * self.speed)
         self.rect.y += int(self.state[1][1] * self.speed)
         self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
-        collisions = pygame.sprite.spritecollideany(self, player_sprites)
-        if collisions:
-            player.get_damage(self.damage)
         self.check_state()
         super().update()
         self.addition_x, self.addition_y = update_addition_center(self)
@@ -695,9 +688,6 @@ class ShootingEnemy(AnimatedSprite):
                     Bullet(self.rect.x, self.rect.y, self.bullet_speed, self.damage, "bat2.png")
             else:
                 SmartBullet(self.rect.x, self.rect.y, self.bullet_speed, self.damage, "bat2.png")
-        collisions = pygame.sprite.spritecollideany(self, player_sprites)
-        if collisions:
-            player.get_damage(self.damage)
         super().update()
 
 
@@ -735,9 +725,6 @@ class HATEnemy(AnimatedSprite):
     def update(self):
         self.hat()
         self.gravitation()
-        collisions = pygame.sprite.spritecollideany(self, player_sprites)
-        if collisions:
-            player.get_damage(self.damage)
         self.rect = self.image.get_rect().move(self.rect.x + self.speed, self.rect.y)
         self.gravity = 0
         super().update()
@@ -773,14 +760,12 @@ class Bullet(AnimatedSprite):
         if self.speed_y > FRAME:
             self.rect.y += int(self.side_y)
         self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
-        if pygame.sprite.collide_mask(self, player):
-            # Анимация взрыва
-            # self.status = SpriteStates.DEAD
-            # super().update()
-            player.get_damage(self.damage)
-            self.kill()
+        # Анимация взрыва
+        # self.status = SpriteStates.DEAD
+        # super().update()
+        # self.kill()
         collides = pygame.sprite.spritecollide(self, tiles_sprites, False)
-        for _ in collides:
+        if collides:
             # Анимация взрыва
             self.kill()
         super().update()
@@ -823,11 +808,6 @@ class Obstacle(AnimatedSprite):
         self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
                                                self.rect.y + self.addition_y)
         self.damage = damage
-
-    def update(self):
-        if pygame.sprite.collide_mask(self, player):
-            player.get_damage(self.damage)
-        super().update()
 
 
 class Saw(Obstacle):
@@ -918,27 +898,32 @@ class Level:
         self.player = Player(self, "spritesheet1.png", self.start.x, self.start.y, self.all_sprites)
 
     def update(self):
-        if self.player:
-            self.player.update_movement()
-            self.player.move()
-            self.player.animate()
+        self.all_sprites.update()
 
     def draw(self, surface):
+        # for sprite in self.all_sprites:
+        #     pygame.draw.rect(surface, pygame.Color("red"), sprite.rect)
         self.background_group.draw(surface)
         self.tiles_group.draw(surface)
         if self.finish:
             surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
         if self.player:
             surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
-        self.frontground_group.draw(surface)
         self.enemy_group.draw(surface)
+        self.frontground_group.draw(surface)
 
     def event_handling(self, event):
         if self.player:
-            self.player.update(event)
+            self.player.event_handling(event)
 
     def check_scroll(self):
         return self.player and pygame.sprite.collide_rect(self.player, self.finish)
+
+    def check_enemies(self):
+        if self.player:
+            for enemy in self.enemy_group:
+                if pygame.sprite.collide_mask(self.player, enemy):
+                    self.player.get_damage(enemy.damage)
 
 
 if __name__ == "__main__":
@@ -979,7 +964,7 @@ if __name__ == "__main__":
         #     pygame.display.flip()
         # terminate()
     elif select == '2':
-        level_name = "simple"
+        level_name = "saws2"
         path = f"../data/levels/{level_name}.json"
         with open(path, 'r', encoding='utf-8') as file:
             # noinspection PyMethodFirstArgAssignment
@@ -996,6 +981,7 @@ if __name__ == "__main__":
                 if cur_event.type == pygame.KEYDOWN or cur_event.type == pygame.KEYUP:
                     level.event_handling(cur_event)
             level.update()
+            level.check_enemies()
             screen.fill(pygame.Color("white"))
             level.draw(screen)
             delay = clock.tick(FPS)
@@ -1003,6 +989,7 @@ if __name__ == "__main__":
             if level.check_scroll():
                 print("YOU WIN")
                 running = False
+            FRAME = (FRAME + 1) % MAX_BULLET_SPEED
         terminate()
         # running = True
         # while running:
