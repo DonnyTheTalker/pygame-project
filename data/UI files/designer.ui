@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>462</width>
-    <height>568</height>
+    <width>497</width>
+    <height>575</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1000,12 +1000,12 @@
      <string>sh Враги</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>330</x>
       <y>220</y>
-      <width>101</width>
+      <width>158</width>
       <height>25</height>
      </rect>
     </property>
@@ -1032,13 +1032,58 @@
      </item>
     </layout>
    </widget>
+   <widget class="QLabel" name="label_19">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>470</y>
+      <width>47</width>
+      <height>13</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Игрок:</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>500</y>
+      <width>261</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_5">
+     <item>
+      <widget class="QPushButton" name="startButton">
+       <property name="text">
+        <string>Start</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">playerButtons</string>
+       </attribute>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="finishButton">
+       <property name="text">
+        <string>Finish</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">playerButtons</string>
+       </attribute>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>462</width>
+     <width>497</width>
      <height>21</height>
     </rect>
    </property>
@@ -1066,20 +1111,21 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="obstacles"/>
-  <buttongroup name="hat_enemy_group"/>
   <buttongroup name="sides_group">
    <property name="exclusive">
     <bool>false</bool>
    </property>
   </buttongroup>
-  <buttongroup name="rotating_group"/>
-  <buttongroup name="default_saw_group"/>
-  <buttongroup name="arrows"/>
   <buttongroup name="moving_enemy_group"/>
+  <buttongroup name="rotating_group"/>
+  <buttongroup name="arrows"/>
+  <buttongroup name="obstacles"/>
+  <buttongroup name="hat_enemy_group"/>
+  <buttongroup name="default_saw_group"/>
   <buttongroup name="layerButtons"/>
-  <buttongroup name="shooting_group"/>
   <buttongroup name="hat_saw_group"/>
   <buttongroup name="control_buttons"/>
+  <buttongroup name="shooting_group"/>
+  <buttongroup name="playerButtons"/>
  </buttongroups>
 </ui>
