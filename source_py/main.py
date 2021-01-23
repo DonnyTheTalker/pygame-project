@@ -49,16 +49,19 @@ pygame.mixer.music.play(-1)
 
 MAIN_FONT = pygame.font.get_default_font()
 FONT_COLOR = pygame.Color("white")
+MENU_BACKGROUND_COLOR = pygame.Color(110, 176, 159)
 
 START_OPTION = 0
-CREATE_LEVEL_OPTION = 1
-LOAD_LEVEL_OPTION = 2
+LEVEL_CREATE_OPTION = 1
+LEVEL_LOAD_OPTION = 2
 EXIT_OPTION = 3
 
 MENU_STAGE = 0
 LEVEL_CHOOSE_STAGE = 1
 LEVEL_CREATE_STAGE = 2
 LEVEL_LOAD_STAGE = 3
+LEVEL_PLAY_STAGE = 4
+EXIT_STAGE = 5
 
 
 def terminate():
@@ -121,11 +124,15 @@ class MainMenu:
                           % len(self.options)
 
     def choose_option(self):
+        global cur_stage
         if self.cursor_pos == EXIT_OPTION:
             terminate()
         elif self.cursor_pos == START_OPTION:
-            global cur_stage
             cur_stage = LEVEL_CHOOSE_STAGE
+        elif self.cursor_pos == LEVEL_CREATE_OPTION:
+            cur_stage = LEVEL_CREATE_STAGE
+        elif self.cursor_pos == LEVEL_LOAD_OPTION:
+            cur_stage = LEVEL_LOAD_STAGE
 
     def run(self):
         running = True
@@ -135,18 +142,19 @@ class MainMenu:
                     running = False
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
-                        menu.move_cursor(-1)
+                        self.move_cursor(-1)
                     elif event.key == pygame.K_DOWN:
-                        menu.move_cursor(1)
+                        self.move_cursor(1)
                     elif event.key == pygame.K_RETURN:
-                        menu.choose_option()
+                        self.choose_option()
                         running = False
 
-            screen.fill(pygame.Color(110, 176, 159))
-            menu.draw_heading()
-            menu.draw_options()
-            menu.draw_cursor()
+            screen.fill(MENU_BACKGROUND_COLOR)
+            self.draw_heading()
+            self.draw_options()
+            self.draw_cursor()
             pygame.display.flip()
+        screen.fill(pygame.Color("black"))
 
 
 def real_coords(coord, x=False, y=False):
@@ -866,68 +874,73 @@ class Level:
         self.frontground_group.draw(surface)
 
 
-cur_stage = MENU_STAGE
-menu = MainMenu()
-menu.run()
-
 if __name__ == "__main__":
-    while True:
-        select = input("Какой цикл запустить? (1, 2, 3)").strip()
-        if select in ['1', '2', '3']:
-            break
-        else:
-            print("Ошибка ввода. Повторите ввод")
-    if select == '1':
-        running = True
-        for i, state in enumerate(SpriteStates.get_states()):
-            if i < 5:
-                player = Player("spritesheet1.png", 40 + i * 70, 40)
-                player.set_status(state)
-                player = Player("spritesheet1.png", 40 + i * 70, 150)
-                player.set_status(state, False)
+    game_loop_active = True
+    cur_stage = MENU_STAGE
+    cur_level = "null"
 
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-            delay = clock.tick(FPS)
-            screen.fill(pygame.Color("white"))
-            for sprite in player_sprites.sprites():
-                pygame.draw.rect(screen, pygame.Color("red"), sprite.rect)
-                print(sprite.rect)
-            for sprite in player_sprites.sprites():
-                sprite.animate()
-            all_sprites.draw(screen)
-            pygame.display.flip()
-        terminate()
-    elif select == '2':
-        p = Player("spritesheet1.png", 50, 50)
-        running = True
-        while running:
-            p.update_movement()
-            p.move()
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
-                    p.update(event)
+    while game_loop_active:
+        if cur_stage == MENU_STAGE:
+            menu = MainMenu()
+            menu.run()
 
-            p.animate()
-
-            screen.fill(pygame.Color("black"))
-            delay = clock.tick(FPS)
-            # screen.blit(background, (0, 0))
-            tiles_sprites.draw(screen)
-            player_sprites.draw(screen)
-            pygame.display.flip()
-        terminate()
-    elif select == '3':
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-            FRAME = (FRAME + 1) % MAX_BULLET_SPEED
-            pygame.display.flip()
-            clock.tick(FPS)
-        terminate()
+    # while True:
+    #     select = input("Какой цикл запустить? (1, 2, 3)").strip()
+    #     if select in ['1', '2', '3']:
+    #         break
+    #     else:
+    #         print("Ошибка ввода. Повторите ввод")
+    # if select == '1':
+    #     running = True
+    #     for i, state in enumerate(SpriteStates.get_states()):
+    #         if i < 5:
+    #             player = Player("spritesheet1.png", 40 + i * 70, 40)
+    #             player.set_status(state)
+    #             player = Player("spritesheet1.png", 40 + i * 70, 150)
+    #             player.set_status(state, False)
+    #
+    #     while running:
+    #         for event in pygame.event.get():
+    #             if event.type == pygame.QUIT:
+    #                 running = False
+    #         delay = clock.tick(FPS)
+    #         screen.fill(pygame.Color("white"))
+    #         for sprite in player_sprites.sprites():
+    #             pygame.draw.rect(screen, pygame.Color("red"), sprite.rect)
+    #             print(sprite.rect)
+    #         for sprite in player_sprites.sprites():
+    #             sprite.animate()
+    #         all_sprites.draw(screen)
+    #         pygame.display.flip()
+    #     terminate()
+    # elif select == '2':
+    #     p = Player("spritesheet1.png", 50, 50)
+    #     running = True
+    #     while running:
+    #         p.update_movement()
+    #         p.move()
+    #         for event in pygame.event.get():
+    #             if event.type == pygame.QUIT:
+    #                 running = False
+    #             if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+    #                 p.update(event)
+    #
+    #         p.animate()
+    #
+    #         screen.fill(pygame.Color("black"))
+    #         delay = clock.tick(FPS)
+    #         # screen.blit(background, (0, 0))
+    #         tiles_sprites.draw(screen)
+    #         player_sprites.draw(screen)
+    #         pygame.display.flip()
+    #     terminate()
+    # elif select == '3':
+    #     running = True
+    #     while running:
+    #         for event in pygame.event.get():
+    #             if event.type == pygame.QUIT:
+    #                 running = False
+    #         FRAME = (FRAME + 1) % MAX_BULLET_SPEED
+    #         pygame.display.flip()
+    #         clock.tick(FPS)
+    #     terminate()
