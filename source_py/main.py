@@ -3,8 +3,8 @@ import pygame
 import os
 import sys
 import time
-import inspect
 import json
+import inspect
 from copy import deepcopy
 from math import sin, cos
 from functools import partial
