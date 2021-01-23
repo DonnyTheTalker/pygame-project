@@ -12,7 +12,7 @@ from math import sin, cos
 pygame.init()
 SIZE = WIDTH, HEIGHT = 800, 600
 tile_width = tile_height = 24
-FPS = 20
+FPS = 60
 EAST = 0
 SE = 1
 SOUTH = 2
@@ -105,9 +105,9 @@ def update_addition_all(width, height):
 
 def main_decoder(dct):
     if "__Level__" in dct:
-        level = Level(dct["spritesheet"], dct["names"])
-        level.load_level(dct)
-        return level
+        new_level = Level()
+        new_level.load_level(dct)
+        return new_level
     if "__Obstacle__" in dct:
         return Obstacle(dct["x"], dct["y"], dct["damage"], dct["spritesheet"])
     if "__Saw__" in dct:
@@ -138,7 +138,7 @@ def main_decoder(dct):
 class MainEncoder(json.JSONEncoder):
     def default(self, o):
         name = type(o).__name__
-        if isinstance(o, Level):
+        if name == "Level":
             return {"__Level__": True, "grid_size": o.grid_size, "CELL_SIZE": o.CELL_SIZE,
                     "background_group": o.background_group.sprites(),
                     "tiles_group": o.tiles_group.sprites(),
@@ -148,7 +148,7 @@ class MainEncoder(json.JSONEncoder):
                     "names": o.names,
                     "start": o.start,
                     "finish": o.finish}
-        elif isinstance(o, Tile):
+        elif name == "Tile":
             return {"x": o.rect.x,
                     "y": o.rect.y,
                     "coords": o.coords}
@@ -295,7 +295,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.set_status(SpriteStates.IDLE)
         self.mask = pygame.mask.from_surface(self.image)
 
-    def update(self):
+    def update(self, *args):
         # Добавить контроль длительности анимации
         self.current_sprite = (self.current_sprite + 1) % len(self.sprites[self.status])
         self.update_sprite()
@@ -390,9 +390,9 @@ class Player(AnimatedSprite):
     LEFT = -1
     RIGHT = 1
 
-    def __init__(self, spritesheet, x, y):
-        super().__init__(spritesheet, x, y, all_sprites,
-                         player_sprites)
+    def __init__(self, parent_level, spritesheet, x, y, *groups):
+        self.level = parent_level
+        super().__init__(spritesheet, x, y, *groups)
         self.setup_movement()
         self.hp = 100
 
@@ -443,7 +443,7 @@ class Player(AnimatedSprite):
 
         # Перемещаем персонажа и проверяем столкновения по горизонтальной оси
         self.rect.x += int(self.speed[0])
-        collided = Collision.get_collision(self.rect, tiles_sprites)
+        collided = Collision.get_collision(self.rect, self.level.tiles_group)
         for obj in collided:
             if self.speed[0] > 0:
                 self.rect.right = obj.rect.left
@@ -454,7 +454,7 @@ class Player(AnimatedSprite):
 
         # Перемещаем персонажа и проверяем столкновения по вертикальной оси
         self.rect.y += int(self.speed[1])
-        collided = Collision.get_collision(self.rect, tiles_sprites)
+        collided = Collision.get_collision(self.rect, self.level.tiles_group)
         for obj in collided:
             if self.speed[1] > 0:
                 self.rect.bottom = obj.rect.top
@@ -508,10 +508,10 @@ class Player(AnimatedSprite):
                 self.is_sliding = False
                 self.has_extra_jump = False
                 self.velocity[1] = min(self.velocity[1], self.max_speed_sliding[1])
-            offset = 3
-            if not Collision.get_collision(self.rect.move(-offset, 0), tiles_sprites):
+            offset = 4
+            if not Collision.get_collision(self.rect.move(-offset, 0), self.level.tiles_group):
                 self.sliding_left = False
-            if not Collision.get_collision(self.rect.move(offset, 0), tiles_sprites):
+            if not Collision.get_collision(self.rect.move(offset, 0), self.level.tiles_group):
                 self.sliding_right = False
 
         # При столкновении с потолком - обнуляем вертикальное ускорение
@@ -538,32 +538,30 @@ class Player(AnimatedSprite):
                 print("Убили!")
                 # Game over
 
-    def update(self, *args):
-        if len(args) > 0:
-            cur_event = args[0]
-            if cur_event.type == pygame.KEYDOWN:
-                # При перемещении влево или вправо - меняем текущее направление персонажа
-                # Также начианем движение персонажа в соответствующую сторону
-                if cur_event.key == pygame.K_RIGHT or cur_event.key == pygame.K_d:
-                    self.moving_right = True
-                    self.cur_rotation = Player.RIGHT
-                elif cur_event.key == pygame.K_LEFT or cur_event.key == pygame.K_a:
-                    self.moving_left = True
-                    self.cur_rotation = Player.LEFT
-                # При попытке прыжка - проверяем на наличие дополнительного прыжка (при скольжении)
-                # Или при наличии второго прыжка (self.jump_count)
-                elif cur_event.key == pygame.K_UP or pygame.key == pygame.K_w:
-                    if self.jump_count > 0 or self.has_extra_jump:
-                        self.in_air = True
-                        self.has_extra_jump = False
-                        self.velocity[1] = -7.5
-                        self.jump_count = max(self.jump_count - 1, 0)
-            # При отпускании клавиши - останавливаем движение персонажа
-            elif cur_event.type == pygame.KEYUP:
-                if cur_event.key == pygame.K_RIGHT or cur_event.key == pygame.K_d:
-                    self.moving_right = False
-                elif cur_event.key == pygame.K_LEFT or cur_event.key == pygame.K_a:
-                    self.moving_left = False
+    def update(self, event, *args):
+        if event.type == pygame.KEYDOWN:
+            # При перемещении влево или вправо - меняем текущее направление персонажа
+            # Также начианем движение персонажа в соответствующую сторону
+            if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                self.moving_right = True
+            elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                self.moving_left = True
+            # При попытке прыжка - проверяем на наличие дополнительного прыжка (при скольжении)
+            # Или при наличии второго прыжка (self.jump_count)
+            elif event.key == pygame.K_UP or pygame.key == pygame.K_w:
+                if self.jump_count > 0 or self.has_extra_jump:
+                    self.in_air = True
+                    self.has_extra_jump = False
+                    self.velocity[1] = -7.5
+                    self.jump_count = max(self.jump_count - 1, 0)
+        # При отпускании клавиши - останавливаем движение персонажа
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
+                self.moving_right = False
+            elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
+                self.moving_left = False
+        if self.moving_left or self.moving_right:
+            self.cur_rotation = Player.RIGHT if self.moving_right else Player.LEFT
 
     # Анимирование персонажа - ответственность базового
     # Класса - AnimatedSprite
@@ -880,21 +878,21 @@ class RotatingSaw(Saw):
 
 
 class Level:
-    def __init__(self, spritesheet, names):
-        self.CELL_SIZE = 24
+    def __init__(self):
         self.all_sprites = pygame.sprite.Group()
         self.background_group = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
         self.frontground_group = pygame.sprite.Group()
         self.enemy_group = pygame.sprite.Group()
-
+        self.CELL_SIZE = 24
+        self.spritesheet = "forest_spritesheet.png"
+        self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.grid_size = self.grid_width, self.grid_height = None, None
-        self.spritesheet = spritesheet
-        self.names = names
-        self.tiles, self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.names,
-                                                               self.CELL_SIZE, 10, 4)
         self.start = None
         self.finish = None
+        self.player = None
+        self.tiles, self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.names,
+                                                               self.CELL_SIZE, 10, 4)
 
     def load_tiles_group(self, tiles_info, *groups):
         for tile_info in tiles_info:
@@ -913,13 +911,34 @@ class Level:
         self.start = dct["start"]
         self.finish = dct["finish"]
 
+    def spawn_player(self):
+        if not self.start:
+            print("Нет точки появления игрока!")
+            return
+        self.player = Player(self, "spritesheet1.png", self.start.x, self.start.y, self.all_sprites)
+
+    def update(self):
+        if self.player:
+            self.player.update_movement()
+            self.player.move()
+            self.player.animate()
+
     def draw(self, surface):
         self.background_group.draw(surface)
         self.tiles_group.draw(surface)
         if self.finish:
             surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
+        if self.player:
+            surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
         self.frontground_group.draw(surface)
         self.enemy_group.draw(surface)
+
+    def event_handling(self, event):
+        if self.player:
+            self.player.update(event)
+
+    def check_scroll(self):
+        return self.player and pygame.sprite.collide_rect(self.player, self.finish)
 
 
 if __name__ == "__main__":
@@ -928,45 +947,63 @@ if __name__ == "__main__":
     pygame.mixer.music.load(background_sound)
     pygame.mixer.music.set_volume(50)
     pygame.mixer.music.play(-1)
-    while True:
-        select = input("Какой цикл запустить? (1, 2, 3)").strip()
-        if select in ['1', '2', '3']:
-            break
-        else:
-            print("Ошибка ввода. Повторите ввод")
+    # while True:
+    #     select = input("Какой цикл запустить? (1, 2, 3)").strip()
+    #     if select in ['1', '2', '3']:
+    #         break
+    #     else:
+    #         print("Ошибка ввода. Повторите ввод")
+    select = '2'
     if select == '1':
-        running = True
-        for i, cur_state in enumerate(SpriteStates.get_states()):
-            if i < 5:
-                player = Player("spritesheet1.png", 40 + i * 70, 40)
-                player.set_status(cur_state)
-                player = Player("spritesheet1.png", 40 + i * 70, 150)
-                player.set_status(cur_state, False)
-
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-            delay = clock.tick(FPS)
-            screen.fill(pygame.Color("white"))
-            for sprite in player_sprites.sprites():
-                pygame.draw.rect(screen, "red", sprite.rect)
-                print(sprite.rect)
-            for sprite in player_sprites.sprites():
-                sprite.animate()
-            all_sprites.draw(screen)
-            pygame.display.flip()
-        terminate()
+        pass
+        # running = True
+        # for i, cur_state in enumerate(SpriteStates.get_states()):
+        #     if i < 5:
+        #         player = Player("spritesheet1.png", 40 + i * 70, 40)
+        #         player.set_status(cur_state)
+        #         player = Player("spritesheet1.png", 40 + i * 70, 150)
+        #         player.set_status(cur_state, False)
+        #
+        # while running:
+        #     for event in pygame.event.get():
+        #         if event.type == pygame.QUIT:
+        #             running = False
+        #     delay = clock.tick(FPS)
+        #     screen.fill(pygame.Color("white"))
+        #     for sprite in player_sprites.sprites():
+        #         pygame.draw.rect(screen, "red", sprite.rect)
+        #         print(sprite.rect)
+        #     for sprite in player_sprites.sprites():
+        #         sprite.animate()
+        #     all_sprites.draw(screen)
+        #     pygame.display.flip()
+        # terminate()
     elif select == '2':
-        level_name = ""
+        level_name = "simple"
+        path = f"../data/levels/{level_name}.json"
+        with open(path, 'r', encoding='utf-8') as file:
+            # noinspection PyMethodFirstArgAssignment
+            level = json.load(file, object_hook=main_decoder)
+            level.spawn_player()
+        screen = pygame.display.set_mode((level.grid_width * tile_width,
+                                          level.grid_height * tile_height))
         running = True
+        delay = clock.tick(FPS)
         while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+            for cur_event in pygame.event.get():
+                if cur_event.type == pygame.QUIT:
                     running = False
-
+                if cur_event.type == pygame.KEYDOWN or cur_event.type == pygame.KEYUP:
+                    level.event_handling(cur_event)
+            level.update()
+            screen.fill(pygame.Color("white"))
+            level.draw(screen)
+            delay = clock.tick(FPS)
+            pygame.display.flip()
+            if level.check_scroll():
+                print("YOU WIN")
+                running = False
         terminate()
-
         # running = True
         # while running:
         #     for event in pygame.event.get():
@@ -975,25 +1012,4 @@ if __name__ == "__main__":
         #     FRAME = (FRAME + 1) % MAX_BULLET_SPEED
         #     pygame.display.flip()
         #     clock.tick(FPS)
-        # terminate()
-        # p = Player("spritesheet1.png", 50, 50)
-        # running = True
-        # while running:
-        #     p.update_movement()
-        #     p.move()
-        #     for event in pygame.event.get():
-        #         if event.type == pygame.QUIT:
-        #             running = False
-        #         if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
-        #             p.update(event)
-        #
-        #     p.animate()
-        #
-        #     screen.fill(pygame.Color("black"))
-        #     delay = clock.tick(FPS)
-        #     screen.blit(background, (0, 0))
-        #     tile_sprites.draw(screen)
-        # pygame.draw.rect(screen, pygame.Color("red"), p.rect)
-        # player_sprites.draw(screen)
-        # pygame.display.flip()
         # terminate()

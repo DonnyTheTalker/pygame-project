@@ -24,7 +24,7 @@ class Main(QMainWindow):
         # self.setupUi(self)
         uic.loadUi("../data/UI files/designer.ui", self)
         self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"  # кодовые символы
-        self.level = Level("forest_spritesheet.png", self.names)
+        self.level = Level()
         self.timer = QTimer(self)
         self.tile_buttons = QButtonGroup(self)
         self.holding = None
