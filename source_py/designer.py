@@ -74,7 +74,7 @@ class Main(QMainWindow):
         self.timer.timeout.connect(self.check_events)
         self.actionopen.triggered.connect(self.open)
         self.actionsave.triggered.connect(self.save)
-        # self.print_button.clicked.connect(self.print_points)
+        self.playerButtons.buttonClicked.connect(self.select_tile)
         self.clear_points.clicked.connect(self.clear_all_points)
         for i, tile_code in enumerate(self.level.tiles):
             button = QPushButton(tile_code, self)
@@ -88,7 +88,6 @@ class Main(QMainWindow):
         self.tile_buttons.buttons()[0].click()
         self.accept_button.clicked.connect(self.accept_points)
         self.hide_makrs()
-        self.set_state("enemy", False)
         self.init_enemy_buttons(self.obstacles, "Obstacle", self.obstacles_images,
                                 self.create_obstacle, self.idle_marks)
         self.init_enemy_buttons(self.default_saw_group, "Saw", self.default_saw_images,
@@ -140,30 +139,13 @@ class Main(QMainWindow):
                                 self.sides_group.buttons(),
                                 [self.DamageSpinBox, self.SpeedSpinBox, self.ChainSpinBox,
                                  self.DirectionSpinBox, self.BulletSpinBox, self.smartradioButton]]
-        tiles_buttons_groups = [self.arrows.buttons(), self.tile_buttons.buttons()]
-        for buttons_group in (tiles_buttons_groups if group != "enemy" else enemy_buttons_groups):
+        tiles_buttons_groups = [self.playerButtons.buttons()]
+        alltiles_buttons_groups = ([self.arrows.buttons(), self.tile_buttons.buttons()] +
+                                   tiles_buttons_groups)
+        for buttons_group in (alltiles_buttons_groups if group == 'alltiles' else
+        (tiles_buttons_groups if group == "tiles" else enemy_buttons_groups)):
             for button in buttons_group:
                 button.setEnabled(val)
-        # if group == "enemy":
-        # for button in self.obstacles.buttons():
-        #     button.setEnabled(val)
-        # for button in self.default_saw_group.buttons():
-        #     button.setEnabled(val)
-        # for button in self.shooting_group.buttons():
-        #     button.setEnabled(val)
-        # for button in self.hat_enemy_group.buttons():
-        #     button.setEnabled(val)
-        # for button in self.rotating_group.buttons():
-        #     button.setEnabled(val)
-        # for button in self.hat_saw_group.buttons():
-        #     button.setEnabled(val)
-        # for button in self.moving_enemy_group.buttons():
-        #     button.setEnabled(val)
-        # else:
-        #     for button in self.arrows.buttons():
-        #         button.setEnabled(val)
-        #     for button in self.tile_buttons.buttons():
-        #         button.setEnabled(val)
 
     def create_obstacle(self, name, marks):
         sender = self.sender()
@@ -280,10 +262,14 @@ class Main(QMainWindow):
     def change_layer(self, button):
         if button.text() == "enemy":
             self.set_state("enemy", True)
-            self.set_state("Tile", False)
+            self.set_state("alltiles", False)
+        elif button.text() == 'tiles':
+            self.set_state("enemy", False)
+            self.set_state("alltiles", True)
         else:
             self.set_state("enemy", False)
-            self.set_state("Tile", True)
+            self.set_state("alltiles", True)
+            self.set_state("tiles", False)
         query = f'self.layer = self.level.{button.text()}_group'
         exec(query)
 
@@ -337,12 +323,20 @@ class Main(QMainWindow):
     def paint(self):
         self.screen.fill(pygame.Color("white"))
         if self.displayMode.isChecked():
-            for sprite in self.level.all_sprites.sprites():
-                pygame.draw.rect(self.screen, "red", sprite.rect)
+            # for sprite in self.level.all_sprites.sprites():
+            #     pygame.draw.rect(self.screen, "red", sprite.rect)
             self.level.draw(self.screen)
+            if self.level.start:
+                self.screen.blit(Flag.image, (self.level.start.rect.x, self.level.start.rect.y))
         else:
             self.layer.draw(self.screen)
-        self.screen.blit(self.level.tiles[self.current_tile],
+        if self.current_tile == "Start":
+            image = Flag.image
+        elif self.current_tile == "Finish":
+            image = Scroll.image
+        else:
+            image = self.level.tiles[self.current_tile]
+        self.screen.blit(image,
                          (self.level.grid_width * self.level.CELL_SIZE, 0))
         if self.gridMode.isChecked():
             color = pygame.Color("red")
@@ -381,19 +375,73 @@ class Main(QMainWindow):
             print(enemy)
             exec(enemy)
         else:
-            image = self.level.tiles[self.current_tile]
-            Tile(image, x, y, self.level.navigate[image], self.level.all_sprites, self.layer)
+            if self.current_tile == "Start":
+                if self.layer == self.level.tiles_group:
+                    if (x + Flag.image.get_width() >
+                            self.level.grid_width * self.level.CELL_SIZE or
+                            y + Flag.image.get_height() >
+                            self.level.grid_height * self.level.CELL_SIZE):
+                        return
+                    if self.level.start:
+                        self.level.start.kill()
+                        self.level.start = None
+                    self.level.start = Flag(x, y, self.level.all_sprites)
+                    pygame.sprite.spritecollide(self.level.start, self.level.tiles_group, True)
+            elif self.current_tile == "Finish":
+                if self.layer == self.level.tiles_group:
+                    if (x + Scroll.image.get_width() >
+                            self.level.grid_width * self.level.CELL_SIZE or
+                            y + Scroll.image.get_height() >
+                            self.level.grid_height * self.level.CELL_SIZE):
+                        return
+                    if self.level.finish:
+                        self.level.finish.kill()
+                        self.level.finish = None
+                    self.level.finish = Scroll(x, y, self.level.all_sprites)
+                    pygame.sprite.spritecollide(self.level.finish, self.level.tiles_group, True)
+            else:
+                image = self.level.tiles[self.current_tile]
+                Tile(image, x, y, self.level.navigate[image], self.level.all_sprites, self.layer)
 
     def del_sprite(self, pos):
         x, y = pos
+        x = x // self.level.CELL_SIZE * self.level.CELL_SIZE
+        y = y // self.level.CELL_SIZE * self.level.CELL_SIZE
         for sprite in self.layer.sprites():
             if sprite.rect.collidepoint(x, y):
                 sprite.kill()
+        if self.layer == self.level.tiles_group:
+            if self.level.start and self.level.start.rect.collidepoint(x, y):
+                self.level.start.kill()
+                self.level.start = None
+            if self.level.finish and self.level.finish.rect.collidepoint(x, y):
+                self.level.finish.kill()
+                self.level.finish = None
 
     def delete_abroad(self):
+        if (self.level.start and
+                not ((self.level.start.rect.left >= 0 and
+                      self.level.start.rect.right <=
+                      self.level.grid_width * self.level.CELL_SIZE) and
+                     (self.level.start.rect.top >= 0 and
+                      self.level.start.rect.bottom <=
+                      self.level.grid_height * self.level.CELL_SIZE))):
+            self.level.start.kill()
+            self.level.start = None
+        if (self.level.finish and
+                not ((self.level.finish.rect.left >= 0 and
+                      self.level.finish.rect.right <=
+                      self.level.grid_width * self.level.CELL_SIZE) and
+                     (self.level.finish.rect.top >= 0 and
+                      self.level.finish.rect.bottom <=
+                      self.level.grid_height * self.level.CELL_SIZE))):
+            self.level.finish.kill()
+            self.level.finish = None
         for sprite in self.level.all_sprites.sprites():
-            if not (0 <= sprite.rect.x <= (self.level.grid_width - 1) * self.level.CELL_SIZE and
-                    0 <= sprite.rect.y <= (self.level.grid_height - 1) * self.level.CELL_SIZE):
+            if not ((sprite.rect.left >= 0 and
+                     sprite.rect.right <= self.level.grid_width * self.level.CELL_SIZE) and
+                    (sprite.rect.top >= 0 and
+                     sprite.rect.bottom <= self.level.grid_height * self.level.CELL_SIZE)):
                 sprite.kill()
 
     def save(self):
@@ -401,6 +449,10 @@ class Main(QMainWindow):
         if not name:
             print("Ошибка ввода имени")
             return
+        if not (self.level.start and self.level.finish):
+            self.statusBar().showMessage("Не выбраны точки старта и финиша")
+            return
+        self.statusBar().hide()
         with open(f'../data/levels/{name}.json', 'w', encoding='utf-8') as file:
             json.dump(self.level, file, cls=MainEncoder)
 
@@ -411,7 +463,6 @@ class Main(QMainWindow):
             return
         with open(path, 'r', encoding='utf-8') as file:
             self.level = json.load(file, object_hook=main_decoder)
-
         self.tiles_button.click()
         self.resize_window()
         self.nameEdit.setText(path.split('/')[-1].split('.')[0])

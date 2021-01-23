@@ -125,6 +125,10 @@ def main_decoder(dct):
     if "__MovingEnemy__" in dct:
         return MovingEnemy(dct['x'], dct['y'], dct['damage'], dct['speed'], dct['points'],
                            dct['spritesheet'], list())
+    if "__Flag__" in dct:
+        return Flag(dct["x"], dct["y"])
+    if "__Scroll__" in dct:
+        return Scroll(dct["x"], dct["y"])
     else:
         return dct
 
@@ -139,7 +143,9 @@ class MainEncoder(json.JSONEncoder):
                     "frontground_group": o.frontground_group.sprites(),
                     "enemy_group": o.enemy_group.sprites(),
                     "spritesheet": o.spritesheet,
-                    "names": o.names}
+                    "names": o.names,
+                    "start": o.start,
+                    "finish": o.finish}
         elif isinstance(o, Tile):
             return {"x": o.rect.x,
                     "y": o.rect.y,
@@ -196,6 +202,14 @@ class MainEncoder(json.JSONEncoder):
                     "damage": o.damage,
                     "points": o.points,
                     "spritesheet": o.spritesheet}
+        elif name == "Flag":
+            return {"__Flag__": True,
+                    "x": o.x,
+                    "y": o.y}
+        elif name == "Scroll":
+            return {"__Flag__": True,
+                    "x": o.x,
+                    "y": o.y}
         else:
             json.JSONEncoder.default(self, o)
 
@@ -223,6 +237,26 @@ class Collision:
             if rect.colliderect(obj.rect):
                 collision_detected.append(obj)
         return collision_detected
+
+
+class Scroll(pygame.sprite.Sprite):
+    image = load_image("scroll.png")
+
+    def __init__(self, x, y, *groups):
+        self.x = x
+        self.y = y
+        super().__init__(*groups)
+        self.rect = self.image.get_rect().move(x, y)
+
+
+class Flag(pygame.sprite.Sprite):
+    image = load_image("start_flag.png")
+
+    def __init__(self, x, y, *groups):
+        self.x = x
+        self.y = y
+        super().__init__(*groups)
+        self.rect = self.image.get_rect().move(x, y)
 
 
 class Tile(pygame.sprite.Sprite):
@@ -834,6 +868,8 @@ class Level:
         self.names = names
         self.tiles, self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.names,
                                                                self.CELL_SIZE, 10, 4)
+        self.start = None
+        self.finish = None
 
     def load_tiles_group(self, tiles_info, *groups):
         for tile_info in tiles_info:
@@ -849,10 +885,14 @@ class Level:
         for enemy in dct["enemy_group"]:
             self.enemy_group.add(enemy)
             self.all_sprites.add(enemy)
+        self.start = dct["start"]
+        self.finish = dct["finish"]
 
     def draw(self, surface):
         self.background_group.draw(surface)
         self.tiles_group.draw(surface)
+        if self.finish:
+            surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
         self.frontground_group.draw(surface)
         self.enemy_group.draw(surface)
 
