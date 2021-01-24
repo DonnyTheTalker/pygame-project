@@ -6,7 +6,7 @@ import json
 import inspect
 import time
 from copy import deepcopy
-from math import sin, cos
+from math import sin, cos, sqrt
 from functools import partial
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
@@ -77,7 +77,7 @@ class Designer(QMainWindow):
         self.bullet_image = "bullet.png"
         self.enemies_spritesheets = {"Obstacle": ["spike1.png", "fire1.png", "kust3.png"],
                                      "MovingEnemy": ["bag.png", "flying_dragon1.png"],
-                                     "ShootingEnemy": [["black_hole_3.png", "bat2.png"],
+                                     "ShootingEnemy": [["black_hole_3.png", "plazma.png"],
                                                        ["black_hole2.png", "bat2.png"]],
                                      "HATEnemy": ["big_cats1.png", "skeleton.png"],
                                      "HATSaw": ["hat_saw.png", "hat_saw2.png"],
@@ -1013,6 +1013,13 @@ class Collision:
         return collision_detected
 
 
+class Block(pygame.sprite.Sprite):
+    def __init__(self, x, y, width, height, level):
+        super().__init__(*(level.tiles_group, level.all_sprites))
+        self.rect = pygame.rect.Rect(x, y, width, height)
+        self.image = pygame.Surface([self.rect.w, self.rect.h])
+
+
 class Scroll(pygame.sprite.Sprite):
     image = load_image("scroll.png")
 
@@ -1305,7 +1312,6 @@ class Player(AnimatedSprite):
         if time.time() - LAST_HIT_TIME >= 1.5:
             LAST_HIT_TIME = time.time()
             self.hp -= damage
-            print(self.hp)
             if self.hp > 0:
                 pass
                 # self.status = SpriteStates.GET_DAMAGE
@@ -1517,7 +1523,7 @@ class HATSaw(HATEnemy):
 
 class Bullet(AnimatedSprite):
     def __init__(self, x, y, speed, damage, spritesheet, enemy_width, enemy_height, sides=None):
-        super().__init__(spritesheet, -100, -100, *[LEVEL.enemy_group, LEVEL.all_sprites])
+        super().__init__(spritesheet, -50, -50, *[LEVEL.enemy_group, LEVEL.all_sprites])
         self.rect = self.image.get_rect().move(x + enemy_width // 2 - self.rect.width // 2,
                                                y + enemy_height // 2 - self.rect.height // 2)
         if sides is None:
@@ -1601,7 +1607,7 @@ class RotatingSaw(Saw):
         super().__init__(x, y, damage, spritesheet, groups)
         self.center_x = x + TILE_WIDTH // 2
         self.center_y = -(y + TILE_HEIGHT // 2)
-        self.length = max(length, 100)
+        self.length = max(length, int(sqrt(self.rect.h ** 2 * 2)) + 10)
         self.saw_x = self.center_x - length
         self.saw_y = -self.center_y
         self.angle = 0
@@ -1616,20 +1622,16 @@ class RotatingSaw(Saw):
             self.angle = 360
         self.saw_x = self.length * sin(self.angle) + self.center_x
         self.saw_y = -self.length * cos(self.angle) + self.center_y
-        self.draw_chain()
-        self.draw_base()
         self.rect = self.image.get_rect().move(self.saw_x - self.rect.w // 2,
                                                -self.saw_y - self.rect.h // 2)
         super().update()
 
-    def draw_chain(self):
+    def draw(self):
         for i in range(0, self.length, 6):
             pygame.draw.circle(SCREEN, "black", ((self.length - i) * sin(self.angle)
                                                  + self.center_x,
                                                  -((-self.length + i) * cos(self.angle)
                                                    + self.center_y)), 2)
-
-    def draw_base(self):
         pygame.draw.rect(SCREEN, "black", (self.center_x - 7, -self.center_y - 7, 14, 14), 0)
 
 
@@ -1683,11 +1685,17 @@ class Level:
         self.background_image = pygame.transform.scale(Level.fon, (width, height))
         self.surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
                                                self.grid_height * self.CELL_SIZE))
+        Block(0, -100, self.grid_width * TILE_WIDTH, 20, self)
+        Block(0, self.grid_height * TILE_HEIGHT + 100,
+              self.grid_width * TILE_WIDTH, 20, self)
+        Block(-20, 0, 20, self.grid_height * TILE_HEIGHT + 1, self)
+        Block(self.grid_width * TILE_WIDTH + 20, 0,
+              20, self.grid_height * TILE_HEIGHT + 1, self)
+
 
     def spawn_player(self):
         self.player.hp = 100
         self.player.rect.x, self.player.rect.y = self.start.x, self.start.y
-        print(self.player.rect)
 
     def update(self):
         self.all_sprites.update()
@@ -1724,6 +1732,9 @@ class Level:
         if self.finish:
             self.surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
         self.surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
+        for enemy in self.enemy_group.sprites():
+            if enemy.__class__.__name__ == "RotatingSaw":
+                enemy.draw()
         self.enemy_group.draw(self.surface)
         self.frontground_group.draw(self.surface)
 
