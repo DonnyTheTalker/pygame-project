@@ -22,6 +22,8 @@ screen = pygame.display.set_mode((1, 1))
 
 TILE_WIDTH = TILE_HEIGHT = 24
 GAME_NAME = "Первый научный платформер"
+SIZE = WIDTH, HEIGHT = 1024, 768
+ZOOM = 1.2
 
 FPS = 60
 EAST = 0
@@ -771,10 +773,8 @@ class Menu(QMainWindow, MenuUI):
             global LEVEL
             level = json.load(file, object_hook=main_decoder)
             LEVEL = level
-            level.spawn_player()
         global SCREEN
-        screen = pygame.display.set_mode((level.grid_width * TILE_WIDTH,
-                                          level.grid_height * TILE_HEIGHT))
+        screen = pygame.display.set_mode(SIZE)
         SCREEN = screen
         pygame.display.set_caption(GAME_NAME)
         clock = pygame.time.Clock()
@@ -789,7 +789,7 @@ class Menu(QMainWindow, MenuUI):
             screen.fill(pygame.Color("white"))
             level.update()
             level.check_enemies()
-            level.draw(screen)
+            level.camera(screen)
             delay = clock.tick(FPS)
             pygame.display.flip()
             if level.check_scroll():
@@ -804,12 +804,18 @@ def terminate():
     sys.exit()
 
 
-def render_text(content, size, x, y):
-    font = pygame.font.Font(MAIN_FONT, size)
-    surface = font.render(content, True, FONT_COLOR)
-    text = surface.get_rect()
-    text.center = (x, y)
-    screen.blit(surface, text)
+# def render_text(content, size, x, y):
+#     font = pygame.font.Font(MAIN_FONT, size)
+#     surface = font.render(content, True, FONT_COLOR)
+#     text = surface.get_rect()
+#     text.center = (x, y)
+#     screen.blit(surface, text)
+
+
+def render_text(text, size, color):
+    font = pygame.font.Font(None, size)
+    text = font.render(text, True, color)
+    return text
 
 
 def load_image(name, colorkey=None):
@@ -1063,7 +1069,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
     def update(self, *args):
         # Добавить контроль длительности анимации
         self.current_sprite = int(((time.time()) -
-                                  START_FRAME) * len(self.sprites[self.status]) * 3
+                                   START_FRAME) * len(self.sprites[self.status]) * 3
                                   % len(self.sprites[self.status]))
         # self.current_sprite = (self.current_sprite + 1) % len(self.sprites[self.status])
         self.update_sprite()
@@ -1141,6 +1147,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 
 class Player(AnimatedSprite):
+    heart = load_image("heart.png")
     has_extra_jump: bool
     in_air: bool
     is_sliding: bool
@@ -1297,12 +1304,12 @@ class Player(AnimatedSprite):
         if time.time() - LAST_HIT_TIME >= 1.5:
             LAST_HIT_TIME = time.time()
             self.hp -= damage
+            print(self.hp)
             if self.hp > 0:
                 pass
                 # self.status = SpriteStates.GET_DAMAGE
                 # self.update()
             else:
-                self.kill()
                 self.level.spawn_player()
 
     def event_handling(self, event):
@@ -1626,6 +1633,8 @@ class RotatingSaw(Saw):
 
 
 class Level:
+    fon = load_image("forestbg.png")
+
     def __init__(self):
         self.all_sprites = pygame.sprite.Group()
         self.background_group = pygame.sprite.Group()
@@ -1633,6 +1642,7 @@ class Level:
         self.frontground_group = pygame.sprite.Group()
         self.enemy_group = pygame.sprite.Group()
         self.CELL_SIZE = 24
+        self.background_image = None
         self.spritesheet = "forest_spritesheet.png"
         self.spritesheet_width, self.spritesheet_height = 10, 8
         self.grid_size = self.grid_width, self.grid_height = None, None
@@ -1659,17 +1669,52 @@ class Level:
             self.all_sprites.add(enemy)
         self.start = dct["start"]
         self.finish = dct["finish"]
+        self.player = Player(self, "player.png", self.start.x, self.start.y, self.all_sprites)
+        level_width, level_height = (self.grid_width * self.CELL_SIZE,
+                                     self.grid_height * self.CELL_SIZE)
+        width, height = Level.fon.get_width(), Level.fon.get_height()
+        if level_width > width:
+            width = level_width
+            height = width * level_height // level_width
+        if level_height > height:
+            height = level_height
+            width = height * level_width // level_height
+        self.background_image = pygame.transform.scale(Level.fon, (width, height))
 
     def spawn_player(self):
-        if not self.start:
-            print("Нет точки появления игрока!")
-            return
-        self.player = Player(self, "spritesheet1.png", self.start.x, self.start.y, self.all_sprites)
+        self.player.hp = 100
+        self.player.rect.x, self.player.rect.y = self.start.x, self.start.y
+        print(self.player.rect)
 
     def update(self):
         self.all_sprites.update()
 
-    def draw(self, surface):
+    def camera(self, screen):
+        render = self.render()
+        crop_width, crop_height = WIDTH // ZOOM, HEIGHT // ZOOM
+        if crop_width > render.get_width():
+            crop_width = render.get_width()
+            crop_height = crop_width * HEIGHT // WIDTH
+        if crop_height > render.get_height():
+            crop_height = render.get_height()
+            crop_width = height * WIDTH // HEIGHT
+        rect = pygame.rect.Rect(0, 0, crop_width, crop_height)
+        rect.center = self.player.rect.center
+        rect.left = max(rect.left, 0)
+        rect.top = max(rect.top, 0)
+        rect.bottom = min(rect.bottom, render.get_height())
+        rect.right = min(rect.right, render.get_width())
+        surface = pygame.transform.scale(render.subsurface(rect), SIZE)
+        surface.blit(Player.heart, (10, 10))
+        text = render_text(f'{self.player.hp}/100', 24, pygame.Color("red"))
+        rect = text.get_rect()
+        surface.blit(text, (50, 26 - rect.centery))
+        screen.blit(surface, (0, 0))
+
+    def render(self):
+        surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
+                                          self.grid_height * self.CELL_SIZE))
+        surface.blit(self.background_image, (0, 0))
         # for sprite in self.all_sprites:
         #     pygame.draw.rect(surface, pygame.Color("red"), sprite.rect)
         self.background_group.draw(surface)
@@ -1680,6 +1725,7 @@ class Level:
             surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
         self.enemy_group.draw(surface)
         self.frontground_group.draw(surface)
+        return surface
 
     def event_handling(self, event):
         if self.player:
