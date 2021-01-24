@@ -393,7 +393,8 @@ class Designer(QMainWindow):
         if self.displayMode.isChecked():
             # for sprite in self.level.all_sprites.sprites():
             # pygame.draw.rect(self.screen, "red", sprite.rect)
-            self.level.draw(self.screen)
+            self.level.render()
+            self.screen.blit(self.level.surface, (0, 0))
             if self.level.start:
                 self.screen.blit(Flag.image, (self.level.start.rect.x, self.level.start.rect.y))
         else:
@@ -1680,6 +1681,8 @@ class Level:
             height = level_height
             width = height * level_width // level_height
         self.background_image = pygame.transform.scale(Level.fon, (width, height))
+        self.surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
+                                               self.grid_height * self.CELL_SIZE))
 
     def spawn_player(self):
         self.player.hp = 100
@@ -1690,7 +1693,8 @@ class Level:
         self.all_sprites.update()
 
     def camera(self, screen):
-        render = self.render()
+        self.render()
+        render = self.surface
         crop_width, crop_height = WIDTH // ZOOM, HEIGHT // ZOOM
         if crop_width > render.get_width():
             crop_width = render.get_width()
@@ -1712,20 +1716,16 @@ class Level:
         screen.blit(surface, (0, 0))
 
     def render(self):
-        surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
-                                          self.grid_height * self.CELL_SIZE))
-        surface.blit(self.background_image, (0, 0))
-        # for sprite in self.all_sprites:
-        #     pygame.draw.rect(surface, pygame.Color("red"), sprite.rect)
-        self.background_group.draw(surface)
-        self.tiles_group.draw(surface)
+        self.surface.fill(pygame.Color("white"))
+        if self.background_image:
+            self.surface.blit(self.background_image, (0, 0))
+        self.background_group.draw(self.surface)
+        self.tiles_group.draw(self.surface)
         if self.finish:
-            surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
-        if self.player:
-            surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
-        self.enemy_group.draw(surface)
-        self.frontground_group.draw(surface)
-        return surface
+            self.surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
+        self.surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
+        self.enemy_group.draw(self.surface)
+        self.frontground_group.draw(self.surface)
 
     def event_handling(self, event):
         if self.player:
