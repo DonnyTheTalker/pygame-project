@@ -47,6 +47,7 @@ def load_icon(name):
 
 
 class Designer(QMainWindow):
+    """Окно дизайнера уровней"""
     current_tile: str
 
     def __init__(self, parent=None):
@@ -91,7 +92,7 @@ class Designer(QMainWindow):
         self.rotating_saw_images = ["saw_image.png", "saw2_image.png"]
         self.moving_images = ["bag_image.png", "dragon_image.png"]
         self.current_enemy = ""
-        self.level = Level()
+        self.level = Level(mode=False)
         self.initUI()
         self.get_size()
         self.timer.start(10)
@@ -130,6 +131,7 @@ class Designer(QMainWindow):
         self.generate_tiles_buttons()
 
     def generate_tiles_buttons(self):
+        """Генерация кнопок выбора тайлов"""
         y_offset = self.height()
         between_offset = 5
         button_size = self.level.CELL_SIZE + between_offset
@@ -171,12 +173,15 @@ class Designer(QMainWindow):
         return [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
 
     def print_points(self):
+        """Вывод точек маршрута передвигающегося противника"""
         print(self.points)
 
     def clear_all_points(self):
+        """Очистить точки маршрута передвигающегося противника"""
         self.points.clear()
 
     def accept_points(self):
+        """Создать передвигающегося противника"""
         if len(self.points) >= 2:
             self.push_moving_enemy()
             self.points = []
@@ -188,6 +193,7 @@ class Designer(QMainWindow):
             mark.hide()
 
     def set_state(self, group, val):
+        """Переключить режим дизайнера"""
         enemy_buttons_groups = [self.obstacles.buttons(), self.default_saw_group.buttons(),
                                 self.shooting_group.buttons(), self.hat_enemy_group.buttons(),
                                 self.rotating_group.buttons(), self.hat_saw_group.buttons(),
@@ -204,6 +210,7 @@ class Designer(QMainWindow):
                 button.setEnabled(val)
 
     def create_obstacle(self, name, marks):
+        """Начать добавление шипов"""
         sender = self.sender()
         self.hide_marks()
         self.points = []
@@ -214,6 +221,7 @@ class Designer(QMainWindow):
         self.current_enemy = self.enemies_spritesheets[name][int(sender.text())]
 
     def create_shooting_enemy(self, name, marks):
+        """Начать добавление стреляющего противника"""
         sender = self.sender()
         self.hide_marks()
         self.points = []
@@ -226,6 +234,7 @@ class Designer(QMainWindow):
         self.bullet_image = self.enemies_spritesheets[name][int(sender.text())][1]
 
     def create_moving_enemy(self, name, marks):
+        """Начать добавление передвигающегося противника"""
         sender = self.sender()
         self.hide_marks()
         for i in marks:
@@ -236,6 +245,7 @@ class Designer(QMainWindow):
         self.current_enemy = self.enemies_spritesheets[name][int(sender.text())]
 
     def push_moving_enemy(self):
+        """Добавить передвигающегося противника"""
         pos = self.points[0]
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] * self.level.CELL_SIZE}",
@@ -246,6 +256,7 @@ class Designer(QMainWindow):
         self.add_sprite(pos)
 
     def push_rotating_saw(self, pos):
+        """Добавить вращающуюся пилу"""
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
@@ -256,6 +267,7 @@ class Designer(QMainWindow):
         self.add_sprite(pos)
 
     def push_hat_enemy(self, pos):
+        """Добавить перемещающегося противника"""
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
@@ -264,6 +276,7 @@ class Designer(QMainWindow):
         self.add_sprite(pos)
 
     def push_obstacle(self, pos):
+        """Добавить шипы"""
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
@@ -271,6 +284,7 @@ class Designer(QMainWindow):
         self.add_sprite(pos)
 
     def push_shooting_enemy(self, pos):
+        """Добавить стреляющего противника"""
         self.parameters = [f"damage={self.DamageSpinBox.value()}",
                            f"x={pos[0] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
                            f"y={pos[1] // self.level.CELL_SIZE * self.level.CELL_SIZE}",
@@ -301,22 +315,26 @@ class Designer(QMainWindow):
             i += 1
 
     def init_screen(self):
+        """Инициализация screen"""
         self.screen = pygame.display.set_mode(
             ((self.level.grid_width + 1) * self.level.CELL_SIZE,
              self.level.grid_height * self.level.CELL_SIZE))
         self.paint()
 
     def get_size(self):
+        """Изменить размеры поля"""
         width, height = self.widthBox.value(), self.heightBox.value()
         self.level.resize(width, height)
         self.resize_window()
 
     def resize_window(self):
+        """Изменить размеры экрана"""
         self.init_screen()
         self.delete_abroad()
         self.paint()
 
     def change_layer(self, button):
+        """Изменить текущий слой"""
         if button.text() == "enemy":
             self.set_state("enemy", True)
             self.set_state("alltiles", False)
@@ -331,12 +349,14 @@ class Designer(QMainWindow):
         exec(query)
 
     def select_tile(self, button):
+        """Выбрать тайл"""
         if button.text():
             self.current_tile = button.text()
         else:
             self.current_tile = self.button_coords[button]
 
     def get_tile_image(self):
+        """Получить изображение текущего тайла"""
         if self.current_tile == "Start":
             return Flag.image
         if self.current_tile == "Finish":
@@ -344,6 +364,7 @@ class Designer(QMainWindow):
         return self.level.rnavigate[self.current_tile]
 
     def move_surface(self, key):
+        """Передвижение всех тайлов на текущем слое"""
         encode = {"↑": (0, -1), "→": (1, 0), "↓": (0, 1), "←": (-1, 0)}
         dx, dy = encode[key.text()]
         for sprite in self.layer.sprites():
@@ -351,6 +372,7 @@ class Designer(QMainWindow):
         self.delete_abroad()
 
     def check_events(self):
+        """PyGame цикл внутри дизайнера, запускаемый по таймеру"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.close()
@@ -388,6 +410,7 @@ class Designer(QMainWindow):
         self.paint()
 
     def paint(self):
+        """Изображение уровня на экране"""
         self.screen.fill(pygame.Color("white"))
         if self.displayMode.isChecked():
             # for sprite in self.level.all_sprites.sprites():
@@ -425,6 +448,7 @@ class Designer(QMainWindow):
         pygame.display.flip()
 
     def add_sprite(self, pos):
+        """Добавление спрайта или противника"""
         x, y = pos
         x = x // self.level.CELL_SIZE * self.level.CELL_SIZE
         y = y // self.level.CELL_SIZE * self.level.CELL_SIZE
@@ -467,6 +491,7 @@ class Designer(QMainWindow):
                      self.level.all_sprites, self.layer)
 
     def del_sprite(self, pos):
+        """Удалить спрайт или противника"""
         x, y = pos
         x = x // self.level.CELL_SIZE * self.level.CELL_SIZE
         y = y // self.level.CELL_SIZE * self.level.CELL_SIZE
@@ -482,6 +507,7 @@ class Designer(QMainWindow):
                 self.level.finish = None
 
     def delete_abroad(self):
+        """Удалить объекты, выходящие за границы сетки"""
         if (self.level.start and
                 not ((self.level.start.rect.left >= 0 and
                       self.level.start.rect.right <=
@@ -508,6 +534,7 @@ class Designer(QMainWindow):
                 sprite.kill()
 
     def save(self):
+        """Сохранить уровень"""
         name = self.nameEdit.text()
         if not name:
             print("Ошибка ввода имени")
@@ -520,12 +547,19 @@ class Designer(QMainWindow):
             json.dump(self.level, file, cls=MainEncoder)
 
     def open(self):
+        """Открыть уровень"""
         path = QFileDialog.getOpenFileName(self, 'Выбрать уровень', '')[0]
         if not path:
             print("Ошибка выбора файла")
             return
-        with open(path, 'r', encoding='utf-8') as file:
-            self.level = json.load(file, object_hook=main_decoder)
+        try:
+            with open(path, 'r', encoding='utf-8') as file:
+                level = json.load(file, object_hook=main_decoder)
+                self.level = level
+        except Exception:
+            self.statusBar().showMessage("Ошибка выбора файла")
+            return
+        self.statusBar().showMessage("")
         self.tiles_button.click()
         self.resize_window()
         self.nameEdit.setText(path.split('/')[-1].split('.')[0])
@@ -533,6 +567,7 @@ class Designer(QMainWindow):
         self.heightBox.setValue(self.level.grid_height)
 
     def closeEvent(self, event):
+        """Действия перед закрытием дизайнера"""
         self.timer.stop()
         pygame.quit()
         if self.parent():
@@ -541,6 +576,8 @@ class Designer(QMainWindow):
 
 
 class Selecter(QMainWindow):
+    """Окно выбора уровня"""
+
     def __init__(self, dir="custom_levels", parent=None):
         super().__init__(parent)
         self.path = f"../data/{dir}/"
@@ -555,11 +592,13 @@ class Selecter(QMainWindow):
                                       os.listdir(self.path)))
 
     def select_level(self, item):
+        """Выбрать уровень из списка"""
         self.hide()
         self.parent().load_level(self.path + item.text())
         self.close()
 
     def closeEvent(self, event):
+        """Действия перед закрытием окна"""
         if self.parent():
             self.parent().show()
         super().closeEvent(event)
@@ -735,6 +774,8 @@ class MenuUI(object):
 
 
 class Menu(QMainWindow, MenuUI):
+    """Основное окно игры"""
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -749,17 +790,20 @@ class Menu(QMainWindow, MenuUI):
         self.exitButton.clicked.connect(self.close)
 
     def start_creating(self):
+        """Запустить дизайнер уровней"""
         designer = Designer(self)
         designer.show()
         self.hide()
 
     def select_level(self, dir="custom_levels"):
+        """Выбрать уровень"""
         selecter = Selecter(dir, self)
         selecter.show()
         self.hide()
 
     @staticmethod
     def load_level(path):
+        """Начать играть"""
         global FRAME
         pygame.init()
         background_sound = "../data/sounds/background.mp3"
@@ -780,6 +824,8 @@ class Menu(QMainWindow, MenuUI):
         delay = clock.tick(FPS)
         time_start = time.time()
         win = False
+        level.mode = True
+        # Основной игровой цикл
         while running:
             for cur_event in pygame.event.get():
                 if cur_event.type == pygame.QUIT:
@@ -817,6 +863,7 @@ class Menu(QMainWindow, MenuUI):
 
 
 def terminate():
+    """Завершить работу программы"""
     pygame.quit()
     sys.exit()
 
@@ -830,12 +877,14 @@ def terminate():
 
 
 def render_text(text, size, color):
+    """Рендер текста в pygame"""
     font = pygame.font.Font(None, size)
     text = font.render(text, True, color)
     return text
 
 
 def load_image(name, colorkey=None):
+    """Загрузка изображения в pygame"""
     # jpg, png, gif без анимации, bmp, pcx, tga, tif, lbm, pbm, xpm
     fullname = os.path.join("..", "data", "images", name)  # получение полного пути к файлу
     if not os.path.isfile(fullname):  # если файл не найден
@@ -853,6 +902,7 @@ def load_image(name, colorkey=None):
 
 
 def cut_sheets(sheet, cell_size, columns, rows):
+    """Нарезка sheet на равные части для использования в тайлах"""
     sheet = load_image(sheet)
     rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
     frames = list()
@@ -925,8 +975,9 @@ def update_addition_all(width, height):
 
 
 def main_decoder(dct):
+    """Функция декодировщик для работы с json файлами"""
     if "__Level__" in dct:
-        new_level = Level()
+        new_level = Level(mode=False)
         new_level.load_level(dct)
         return new_level
     if "__Obstacle__" in dct:
@@ -957,6 +1008,8 @@ def main_decoder(dct):
 
 
 class MainEncoder(json.JSONEncoder):
+    """Класс кодировщик для работы с json файлами"""
+
     def default(self, o):
         name = type(o).__name__
         if name == "Level":
@@ -1021,6 +1074,7 @@ class MainEncoder(json.JSONEncoder):
 
 
 class SpriteStates:
+    """Состояния sprite в AnimatedSprite"""
     IDLE = "1idle"
     FALLING = "2falling"
     JUMPING = "3jumping"
@@ -1029,6 +1083,7 @@ class SpriteStates:
 
     @staticmethod
     def get_states():
+        """Возвращает список всех дополнительных параметров"""
         attributes = inspect.getmembers(SpriteStates, lambda a: not (inspect.isroutine(a)))
         attributes = sorted([a[1] for a in attributes if (not (a[0].startswith('__') and
                                                                a[0].endswith('__')))])
@@ -1053,6 +1108,7 @@ class Block(pygame.sprite.Sprite):
 
 
 class Scroll(pygame.sprite.Sprite):
+    """Класс свиток, используемый как цель уровня"""
     image = load_image("scroll.png")
 
     def __init__(self, x, y, *groups):
@@ -1063,6 +1119,7 @@ class Scroll(pygame.sprite.Sprite):
 
 
 class Flag(pygame.sprite.Sprite):
+    """Класс флаг, определяющий стартовое положение игрока"""
     image = load_image("start_flag.png")
 
     def __init__(self, x, y, *groups):
@@ -1073,6 +1130,8 @@ class Flag(pygame.sprite.Sprite):
 
 
 class Tile(pygame.sprite.Sprite):
+    """Класс тайла"""
+
     def __init__(self, image, x, y, coords, *groups):
         super().__init__(*groups)
         self.image = image
@@ -1081,6 +1140,7 @@ class Tile(pygame.sprite.Sprite):
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
+    """Класс, отвечающий за анимирование спрайта"""
     all_spritesheets = ["bag.png", "bat2.png", "big_cats.png", "black_hole_3.png",
                         "black_hole2.png", "fire1.png", "flying_dragon.png", "kust3.png",
                         "player.png", "plazma.png", "saw.png", "saw2.png", "skeleton.png",
@@ -1121,6 +1181,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def update(self, *args):
+        """Обновление"""
         # Добавить контроль длительности анимации
         self.current_sprite = int(((time.time()) -
                                    START_FRAME) * len(self.sprites[self.status]) * 3
@@ -1166,6 +1227,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 
 class Player(AnimatedSprite):
+    """Класс игрока"""
     heart = load_image("heart.png")
     has_extra_jump: bool
     in_air: bool
@@ -1192,6 +1254,7 @@ class Player(AnimatedSprite):
 
     # Базовые параметры физики персонажа
     def setup_movement(self):
+        """Установление начальных значений"""
         self.speed = [0, 0]
         self.velocity = [3, 3]
         self.gravity = 0.3
@@ -1375,6 +1438,8 @@ class Player(AnimatedSprite):
 
 
 class MovingEnemy(AnimatedSprite):
+    """Класс передвигающегося по точкам противника"""
+
     def __init__(self, x, y, damage, speed, points, spritesheet, groups):
         super().__init__(spritesheet, x, y, *groups)
         self.damage = damage
@@ -1461,6 +1526,8 @@ class MovingEnemy(AnimatedSprite):
 
 
 class ShootingEnemy(AnimatedSprite):
+    """Класс стреляющего противника"""
+
     def __init__(self, x, y, damage, spritesheet, bullet_image, groups, bullet_speed=1,
                  all_sides=None, smart=False):
         super().__init__(spritesheet, x, y, *groups)
@@ -1488,6 +1555,8 @@ class ShootingEnemy(AnimatedSprite):
 
 
 class HATEnemy(AnimatedSprite):
+    """Класс передвигающегося в разные стороны противника"""
+
     def __init__(self, spritesheet, x, y, damage, speed, groups):
         self.speed = speed
         self.gravity = 1
@@ -1524,6 +1593,8 @@ class HATEnemy(AnimatedSprite):
 
 
 class HATSaw(HATEnemy):
+    """Класс передвигающейся в разные стороны пилы"""
+
     def __init__(self, spritesheet, x, y, damage, speed, groups):
         super().__init__(spritesheet, x, y, damage, speed, groups)
         self.set_status(SpriteStates.IDLE)
@@ -1533,6 +1604,8 @@ class HATSaw(HATEnemy):
 
 
 class Bullet(AnimatedSprite):
+    """Класс пули"""
+
     def __init__(self, x, y, speed, damage, spritesheet, enemy_width, enemy_height, sides=None):
         super().__init__(spritesheet, -50, -50, *[LEVEL.enemy_group, LEVEL.all_sprites])
         self.rect = self.image.get_rect().move(x + enemy_width // 2 - self.rect.width // 2,
@@ -1553,10 +1626,6 @@ class Bullet(AnimatedSprite):
         if self.speed_y > FRAME:
             self.rect.y += int(self.side_y)
         self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
-        # Анимация взрыва
-        # self.status = SpriteStates.DEAD
-        # super().update()
-        # self.kill()
         collides = pygame.sprite.spritecollide(self, LEVEL.tiles_group, False)
         if collides:
             # Анимация взрыва
@@ -1565,6 +1634,8 @@ class Bullet(AnimatedSprite):
 
 
 class SmartBullet(Bullet):
+    """Класс умной пули, следующей за игроком"""
+
     def __init__(self, x, y, speed, damage, spritesheet, enemy_width, enemy_height):
         super().__init__(x, y, speed, damage, spritesheet, enemy_width, enemy_height)
 
@@ -1591,6 +1662,8 @@ class SmartBullet(Bullet):
 
 
 class Obstacle(AnimatedSprite):
+    """Класс шипа"""
+
     def __init__(self, x, y, damage, spritesheet, groups=None):
         if groups is None:
             groups = list()
@@ -1604,6 +1677,8 @@ class Obstacle(AnimatedSprite):
 
 
 class Saw(Obstacle):
+    """Класс статической пилы"""
+
     def __init__(self, x, y, damage, spritesheet, groups=None):
         if groups is None:
             groups = list()
@@ -1612,6 +1687,8 @@ class Saw(Obstacle):
 
 
 class RotatingSaw(Saw):
+    """Класс крутящейся пилы"""
+
     def __init__(self, x, y, damage, length, spritesheet, groups=None, speed=3, direction=1):
         if groups is None:
             groups = list()
@@ -1649,6 +1726,8 @@ class RotatingSaw(Saw):
 
 
 class GameOver(pygame.sprite.Sprite):
+    """Класс финального баннера"""
+
     def __init__(self, x, y, game_time=0, deaths=0, *args):
         super().__init__(*args)
         self.image = load_image("GameOver.png")
@@ -1667,6 +1746,7 @@ class GameOver(pygame.sprite.Sprite):
         self.death_rect.top = self.time_rect.bottom + 50
 
     def update(self, delay):
+        """Передвижение по мере обновления спрайта"""
         self.x += int(self.speed * delay / 1000)
         if self.x + self.rect.width >= WIDTH:
             self.x = WIDTH - self.rect.width
@@ -1674,15 +1754,18 @@ class GameOver(pygame.sprite.Sprite):
         self.rect.x = int(self.x)
 
     def draw(self, screen):
+        """Отображение на screen"""
         screen.blit(self.image, (self.rect.x, self.rect.y))
         screen.blit(self.time_text, (self.x + self.time_rect.x, self.time_rect.y))
         screen.blit(self.death_text, (self.x + self.death_rect.x, self.death_rect.y))
 
 
 class Level:
+    """Класс уровня"""
     fon = load_image("forestbg.png")
 
-    def __init__(self):
+    def __init__(self, mode=True):
+        self.mode = mode
         self.all_sprites = pygame.sprite.Group()
         self.background_group = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
@@ -1703,16 +1786,19 @@ class Level:
                                                    self.spritesheet_height)
 
     def resize(self, grid_width, grid_height):
+        """Изменение размеров сетки"""
         self.grid_size = self.grid_width, self.grid_height = grid_width, grid_height
         self.surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
                                                self.grid_height * self.CELL_SIZE))
 
     def load_tiles_group(self, tiles_info, *groups):
+        """Восстановление тайлов по сохраненной информации"""
         for tile_info in tiles_info:
             Tile(self.rnavigate[tuple(tile_info["coords"])], tile_info["x"], tile_info["y"],
                  tile_info["coords"], *groups)
 
     def load_level(self, dct: dict):
+        """Загрузка уровня по сохраненной информации"""
         self.CELL_SIZE = dct["CELL_SIZE"]
         self.grid_size = self.grid_width, self.grid_height = dct["grid_size"]
         self.load_tiles_group(dct["background_group"], self.all_sprites, self.background_group)
@@ -1723,7 +1809,6 @@ class Level:
             self.all_sprites.add(enemy)
         self.start = dct["start"]
         self.finish = dct["finish"]
-        self.player = Player(self, "player.png", self.start.x, self.start.y, self.all_sprites)
         level_width, level_height = (self.grid_width * self.CELL_SIZE,
                                      self.grid_height * self.CELL_SIZE)
         width, height = Level.fon.get_width(), Level.fon.get_height()
@@ -1734,24 +1819,28 @@ class Level:
             height = level_height
             width = height * level_width // level_height
         self.background_image = pygame.transform.scale(Level.fon, (width, height))
+        self.player = Player(self, "player.png", self.start.x, self.start.y, self.all_sprites)
         self.surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
                                                self.grid_height * self.CELL_SIZE))
         Block(0, -100, self.grid_width * TILE_WIDTH, 20, self)
         Block(0, self.grid_height * TILE_HEIGHT + 100,
               self.grid_width * TILE_WIDTH, 20, self)
-        Block(-20, 0, 20, self.grid_height * TILE_HEIGHT + 1, self)
+        Block(-20, 0, 20, self.grid_height * TILE_HEIGHT + 100, self)
         Block(self.grid_width * TILE_WIDTH + 20, 0,
-              20, self.grid_height * TILE_HEIGHT + 1, self)
+              20, self.grid_height * TILE_HEIGHT + 100, self)
 
     def spawn_player(self):
+        """Обработка смерти игрока"""
         self.deaths += 1
         self.player.hp = 100
         self.player.rect.x, self.player.rect.y = self.start.x, self.start.y
 
     def update(self):
+        """Обновление всех спрайтов"""
         self.all_sprites.update()
 
     def camera(self, screen):
+        """Обработка камеры"""
         self.render()
         render = self.surface
         crop_width, crop_height = WIDTH // ZOOM, HEIGHT // ZOOM
@@ -1775,14 +1864,15 @@ class Level:
         screen.blit(surface, (0, 0))
 
     def render(self):
+        """Рендер всего уровня"""
         self.surface.fill(pygame.Color("white"))
-        if self.background_image:
+        if self.mode and self.background_image:
             self.surface.blit(self.background_image, (0, 0))
         self.background_group.draw(self.surface)
         self.tiles_group.draw(self.surface)
         if self.finish:
             self.surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
-        if self.player:
+        if self.mode and self.player:
             self.surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
         for enemy in self.enemy_group.sprites():
             if enemy.__class__.__name__ == "RotatingSaw":
@@ -1791,13 +1881,16 @@ class Level:
         self.frontground_group.draw(self.surface)
 
     def event_handling(self, event):
+        """Обработка события"""
         if self.player:
             self.player.event_handling(event)
 
     def check_scroll(self):
+        """Проверка на достижение цели"""
         return self.player and pygame.sprite.collide_rect(self.player, self.finish)
 
     def check_enemies(self):
+        """Проверка на взаимодействие игрока с противниками"""
         if self.player:
             for enemy in self.enemy_group:
                 if pygame.sprite.collide_mask(self.player, enemy):
