@@ -6,82 +6,211 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1000</width>
+    <height>760</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>230</x>
-      <y>10</y>
-      <width>311</width>
-      <height>541</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <widget class="QPushButton" name="startButton">
-       <property name="text">
-        <string>Начать игру</string>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QFrame" name="main_frame">
+      <property name="styleSheet">
+       <string notr="true">QFrame 
+{
+	background-color: rgb(49, 52, 117); 
+    color: rbg(220, 220, 220); 
+    border-radius: 20px;
+}</string>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget">
+       <property name="geometry">
+        <rect>
+         <x>180</x>
+         <y>180</y>
+         <width>631</width>
+         <height>561</height>
+        </rect>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">contolButtons</string>
-       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QPushButton" name="startButton">
+          <property name="font">
+           <font>
+            <family>Segoe UI</family>
+            <pointsize>32</pointsize>
+            <weight>75</weight>
+            <italic>false</italic>
+            <bold>true</bold>
+            <underline>false</underline>
+            <strikeout>false</strikeout>
+            <kerning>true</kerning>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton{ 
+	border-radius: 10;
+	border: 4px solid rgb(238, 217, 94);
+	color: rgb(238, 214, 115);
+	background-color: rgb(41, 35, 117)
+}
+
+QPushButton::pressed
+{
+	color: black;
+	background-color: rbg(238, 214, 115);
+}</string>
+          </property>
+          <property name="text">
+           <string>Начать Игру</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="loadButton">
+          <property name="font">
+           <font>
+            <family>Segoe UI</family>
+            <pointsize>32</pointsize>
+            <weight>75</weight>
+            <italic>false</italic>
+            <bold>true</bold>
+            <underline>false</underline>
+            <strikeout>false</strikeout>
+            <kerning>true</kerning>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton{ 
+	border-radius: 10;
+	border: 4px solid rgb(238, 217, 94);
+	color: rgb(238, 214, 115);
+	background-color: rgb(41, 35, 117)
+}
+
+QPushButton::pressed
+{
+	color: black;
+	background-color: rbg(238, 214, 115);
+}</string>
+          </property>
+          <property name="text">
+           <string>Загрузить Уровень</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="createButton">
+          <property name="font">
+           <font>
+            <family>Segoe UI</family>
+            <pointsize>32</pointsize>
+            <weight>75</weight>
+            <italic>false</italic>
+            <bold>true</bold>
+            <underline>false</underline>
+            <strikeout>false</strikeout>
+            <kerning>true</kerning>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton{ 
+	border-radius: 10;
+	border: 4px solid rgb(238, 217, 94);
+	color: rgb(238, 214, 115);
+	background-color: rgb(41, 35, 117)
+}
+
+QPushButton::pressed
+{
+	color: black;
+	background-color: rbg(238, 214, 115);
+}</string>
+          </property>
+          <property name="text">
+           <string>Создать Уровень</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="exitButton">
+          <property name="font">
+           <font>
+            <family>Segoe UI</family>
+            <pointsize>32</pointsize>
+            <weight>75</weight>
+            <italic>false</italic>
+            <bold>true</bold>
+            <underline>false</underline>
+            <strikeout>false</strikeout>
+            <kerning>true</kerning>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton{ 
+	border-radius: 10;
+	border: 4px solid rgb(238, 217, 94);
+	color: rgb(238, 214, 115);
+	background-color: rgb(41, 35, 117)
+}
+
+QPushButton::pressed
+{
+	color: black;
+	background-color: rbg(238, 214, 115);
+}</string>
+          </property>
+          <property name="text">
+           <string>Выйти</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="loadButton">
-       <property name="text">
-        <string>Загрузить уровень</string>
+      <widget class="QLabel" name="gameTitleLabel">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>50</y>
+         <width>941</width>
+         <height>61</height>
+        </rect>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">contolButtons</string>
-       </attribute>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="createButton">
-       <property name="text">
-        <string>Создать уровень</string>
+       <property name="font">
+        <font>
+         <family>Segoe UI</family>
+         <pointsize>32</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">contolButtons</string>
-       </attribute>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="exitButton">
-       <property name="text">
-        <string>Выйти</string>
+       <property name="styleSheet">
+        <string notr="true">border: 0px;
+color: rgb(238, 214, 115)</string>
        </property>
-       <attribute name="buttonGroup">
-        <string notr="true">contolButtons</string>
-       </attribute>
+       <property name="text">
+        <string>Первый Научный Платформер</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
       </widget>
-     </item>
-    </layout>
-   </widget>
+     </widget>
+    </item>
+   </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>800</width>
-     <height>21</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>
- <buttongroups>
-  <buttongroup name="contolButtons"/>
- </buttongroups>
 </ui>

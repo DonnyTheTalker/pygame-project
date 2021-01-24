@@ -8,11 +8,12 @@ import inspect
 from copy import deepcopy
 from math import sin, cos
 from functools import partial
-from PyQt5 import uic
+from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QColor
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = '0,30'
 pygame.init()
@@ -534,14 +535,183 @@ class Selecter(QMainWindow):
         super().closeEvent(event)
 
 
-class Menu(QMainWindow):
+# Меню настройки приложения
+# Используется большинством окон
+def setup_frame(widget, main_frame):
+    # Убираем фон и заглавие окна
+    widget.setWindowFlag(QtCore.Qt.FramelessWindowHint)
+    widget.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+
+    # Настраиваем тень от окна - для красоты
+    widget.shadow = QGraphicsDropShadowEffect(widget)
+    widget.shadow.setBlurRadius(30)
+    widget.shadow.setXOffset(0)
+    widget.shadow.setYOffset(0)
+    widget.shadow.setColor(QColor(0, 0, 0, 60))
+    main_frame.setGraphicsEffect(widget.shadow)
+
+
+class MenuUI(object):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(1000, 760)
+        self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.main_frame = QtWidgets.QFrame(self.centralwidget)
+        self.main_frame.setStyleSheet("QFrame \n"
+                                      "{\n"
+                                      "    background-color: rgb(49, 52, 117); \n"
+                                      "    color: rbg(220, 220, 220); \n"
+                                      "    border-radius: 20px;\n"
+                                      "}")
+        self.main_frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.main_frame.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.main_frame.setObjectName("main_frame")
+        self.verticalLayoutWidget = QtWidgets.QWidget(self.main_frame)
+        self.verticalLayoutWidget.setGeometry(QtCore.QRect(180, 180, 631, 561))
+        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.startButton = QtWidgets.QPushButton(self.verticalLayoutWidget)
+        font = QtGui.QFont()
+        font.setFamily("Segoe UI")
+        font.setPointSize(32)
+        font.setBold(True)
+        font.setItalic(False)
+        font.setUnderline(False)
+        font.setWeight(75)
+        font.setStrikeOut(False)
+        font.setKerning(True)
+        self.startButton.setFont(font)
+        self.startButton.setStyleSheet("QPushButton{ \n"
+                                       "    border-radius: 10;\n"
+                                       "    border: 4px solid rgb(238, 217, 94);\n"
+                                       "    color: rgb(238, 214, 115);\n"
+                                       "    background-color: rgb(41, 35, 117)\n"
+                                       "}\n"
+                                       "\n"
+                                       "QPushButton::pressed\n"
+                                       "{\n"
+                                       "    color: black;\n"
+                                       "    background-color: rgb(238, 214, 115)\n"
+                                       "}")
+        self.startButton.setObjectName("startButton")
+        self.verticalLayout_2.addWidget(self.startButton)
+        self.loadButton = QtWidgets.QPushButton(self.verticalLayoutWidget)
+        font = QtGui.QFont()
+        font.setFamily("Segoe UI")
+        font.setPointSize(32)
+        font.setBold(True)
+        font.setItalic(False)
+        font.setUnderline(False)
+        font.setWeight(75)
+        font.setStrikeOut(False)
+        font.setKerning(True)
+        self.loadButton.setFont(font)
+        self.loadButton.setStyleSheet("QPushButton{ \n"
+                                      "    border-radius: 10;\n"
+                                      "    border: 4px solid rgb(238, 217, 94);\n"
+                                      "    color: rgb(238, 214, 115);\n"
+                                      "    background-color: rgb(41, 35, 117)\n"
+                                      "}\n"
+                                      "\n"
+                                      "QPushButton::pressed\n"
+                                      "{\n"
+                                      "    color: black;\n"
+                                      "    background-color: rgb(238, 214, 115)\n"
+                                      "}")
+        self.loadButton.setObjectName("loadButton")
+        self.verticalLayout_2.addWidget(self.loadButton)
+        self.createButton = QtWidgets.QPushButton(self.verticalLayoutWidget)
+        font = QtGui.QFont()
+        font.setFamily("Segoe UI")
+        font.setPointSize(32)
+        font.setBold(True)
+        font.setItalic(False)
+        font.setUnderline(False)
+        font.setWeight(75)
+        font.setStrikeOut(False)
+        font.setKerning(True)
+        self.createButton.setFont(font)
+        self.createButton.setStyleSheet("QPushButton{ \n"
+                                        "    border-radius: 10;\n"
+                                        "    border: 4px solid rgb(238, 217, 94);\n"
+                                        "    color: rgb(238, 214, 115);\n"
+                                        "    background-color: rgb(41, 35, 117)\n"
+                                        "}\n"
+                                        "\n"
+                                        "QPushButton::pressed\n"
+                                        "{\n"
+                                        "    color: black;\n"
+                                        "    background-color: rgb(238, 214, 115)\n"
+                                        "}")
+        self.createButton.setObjectName("createButton")
+        self.verticalLayout_2.addWidget(self.createButton)
+        self.exitButton = QtWidgets.QPushButton(self.verticalLayoutWidget)
+        font = QtGui.QFont()
+        font.setFamily("Segoe UI")
+        font.setPointSize(32)
+        font.setBold(True)
+        font.setItalic(False)
+        font.setUnderline(False)
+        font.setWeight(75)
+        font.setStrikeOut(False)
+        font.setKerning(True)
+        self.exitButton.setFont(font)
+        self.exitButton.setStyleSheet("QPushButton{ \n"
+                                      "    border-radius: 10;\n"
+                                      "    border: 4px solid rgb(238, 217, 94);\n"
+                                      "    color: rgb(238, 214, 115);\n"
+                                      "    background-color: rgb(41, 35, 117)\n"
+                                      "}\n"
+                                      "\n"
+                                      "QPushButton::pressed\n"
+                                      "{\n"
+                                      "    color: black;\n"
+                                      "    background-color: rgb(238, 214, 115)\n"
+                                      "}")
+        self.exitButton.setObjectName("exitButton")
+        self.verticalLayout_2.addWidget(self.exitButton)
+        self.gameTitleLabel = QtWidgets.QLabel(self.main_frame)
+        self.gameTitleLabel.setGeometry(QtCore.QRect(20, 50, 941, 61))
+        font = QtGui.QFont()
+        font.setFamily("Segoe UI")
+        font.setPointSize(32)
+        font.setBold(True)
+        font.setWeight(75)
+        self.gameTitleLabel.setFont(font)
+        self.gameTitleLabel.setStyleSheet("border: 0px;\n"
+                                          "color: rgb(238, 214, 115)")
+        self.gameTitleLabel.setTextFormat(QtCore.Qt.AutoText)
+        self.gameTitleLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.gameTitleLabel.setObjectName("gameTitleLabel")
+        self.verticalLayout.addWidget(self.main_frame)
+        MainWindow.setCentralWidget(self.centralwidget)
+
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.startButton.setText(_translate("MainWindow", "Начать Игру"))
+        self.loadButton.setText(_translate("MainWindow", "Загрузить Уровень"))
+        self.createButton.setText(_translate("MainWindow", "Создать Уровень"))
+        self.exitButton.setText(_translate("MainWindow", "Выйти"))
+        self.gameTitleLabel.setText(_translate("MainWindow", "Первый Научный Платформер"))
+
+
+class Menu(QMainWindow, MenuUI):
     def __init__(self):
         super().__init__()
-        # self.setupUi(self)
-        uic.loadUi("../data/UI files/menu.ui", self)
+        self.setupUi(self)
         self.initUI()
 
     def initUI(self):
+        setup_frame(self, self.main_frame)
         self.setWindowTitle(GAME_NAME)
         self.startButton.clicked.connect(partial(self.select_level, "story_levels"))
         self.loadButton.clicked.connect(partial(self.select_level, "custom_levels"))
