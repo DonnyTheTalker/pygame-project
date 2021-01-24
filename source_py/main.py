@@ -1370,6 +1370,8 @@ class Player(AnimatedSprite):
     def update(self, *args):
         self.update_movement()
         self.move()
+        if self.rect.y > self.level.grid_height * TILE_HEIGHT:
+            self.level.spawn_player()
         super().update(*args)
 
 
@@ -1735,9 +1737,12 @@ class Level:
         Block(0, -100, self.grid_width * TILE_WIDTH, 20, self)
         Block(0, self.grid_height * TILE_HEIGHT + 100,
               self.grid_width * TILE_WIDTH, 20, self)
-        Block(-20, 0, 20, self.grid_height * TILE_HEIGHT + 1, self)
-        Block(self.grid_width * TILE_WIDTH + 20, 0,
+        Block(-80, 0, 20, self.grid_height * TILE_HEIGHT + 1, self)
+        Block(self.grid_width * TILE_WIDTH + 80, 0,
               20, self.grid_height * TILE_HEIGHT + 1, self)
+        Block(-20, -300, 20, 300, self)
+        Block(self.grid_width * TILE_WIDTH, -300,
+              20, 300, self)
 
     def spawn_player(self):
         self.deaths += 1
