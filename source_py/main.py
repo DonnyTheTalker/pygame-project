@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QIcon, QPixmap, QColor
 from PIL import Image, ImageQt
+from selecter import *
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = '0,30'
 pygame.init()
@@ -579,14 +580,14 @@ class Designer(QMainWindow):
         super().closeEvent(event)
 
 
-class Selecter(QMainWindow):
+class Selecter(QMainWindow, Ui_Selecter):
     """Окно выбора уровня"""
 
     def __init__(self, dir="custom_levels", parent=None):
         super().__init__(parent)
         self.path = f"../data/{dir}/"
-        # self.setupUi(self)
-        uic.loadUi("../data/UI files/selecter.ui", self)
+        self.setupUi(self)
+        # uic.loadUi("../data/UI files/selecter.ui", self)
         self.initUI()
 
     def initUI(self):
