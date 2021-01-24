@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtGui import QIcon, QPixmap, QColor
+from PIL import Image, ImageQt
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = '0,30'
 pygame.init()
@@ -56,6 +57,7 @@ class Designer(QMainWindow):
         self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"  # кодовые символы
         self.timer = QTimer(self)
         self.tile_buttons = QButtonGroup(self)
+        self.button_coords = dict()
         self.holding = None
         self.mark_group = [self.damage_active, self.speed_active,
                            self.points_active, self.chainlen_active,
@@ -107,16 +109,7 @@ class Designer(QMainWindow):
         self.actionsave.triggered.connect(self.save)
         self.playerButtons.buttonClicked.connect(self.select_tile)
         self.clear_points.clicked.connect(self.clear_all_points)
-        for i, tile_code in enumerate(self.level.tiles):
-            button = QPushButton(tile_code, self)
-            button.resize(self.level.CELL_SIZE, self.level.CELL_SIZE)
-            button.move(20 + i % 10 * (self.level.CELL_SIZE + 10),
-                        y_offset + i // 10 * (self.level.CELL_SIZE + 10))
-            self.tile_buttons.addButton(button)
-        self.setFixedSize(max(self.width(), 20 + 10 * (self.level.CELL_SIZE + 10)),
-                          y_offset + i // 10 * (self.level.CELL_SIZE + 10) + button.height() + 10)
         self.tile_buttons.buttonClicked.connect(self.select_tile)
-        self.tile_buttons.buttons()[0].click()
         self.accept_button.clicked.connect(self.accept_points)
         self.hide_marks()
         self.init_enemy_buttons(self.obstacles, "Obstacle", self.obstacles_images,
@@ -133,6 +126,37 @@ class Designer(QMainWindow):
                                 self.create_obstacle, self.hat_marks)
         self.init_enemy_buttons(self.moving_enemy_group, "MovingEnemy", self.moving_images,
                                 self.create_moving_enemy, self.moving_marks)
+        self.generate_tiles_buttons()
+
+    def generate_tiles_buttons(self):
+        y_offset = self.height()
+        between_offset = 5
+        button_size = self.level.CELL_SIZE + between_offset
+        for button in self.tile_buttons.buttons():
+            y_offset = min(y_offset, button.y())
+            button.close()
+        self.button_coords.clear()
+        spritesheet_image = Image.open(f"../data/images/{self.level.spritesheet}")
+        spritesheet_image = spritesheet_image.resize((self.level.spritesheet_width *
+                                                      self.level.CELL_SIZE,
+                                                      self.level.spritesheet_height *
+                                                      self.level.CELL_SIZE))
+        for row in range(self.level.spritesheet_height):
+            for column in range(self.level.spritesheet_width):
+                button = QPushButton(self)
+                self.button_coords[button] = (row, column)
+                button.resize(self.level.CELL_SIZE, self.level.CELL_SIZE)
+                button.move(20 + column * button_size,
+                            y_offset + row * button_size)
+                left, up = self.level.CELL_SIZE * column, self.level.CELL_SIZE * row
+                button_image = ImageQt.ImageQt(spritesheet_image.crop((left, up,
+                                                                       left + self.level.CELL_SIZE,
+                                                                       up + self.level.CELL_SIZE)))
+                button.setIcon(QIcon(QPixmap.fromImage(button_image)))
+                self.tile_buttons.addButton(button)
+        self.setFixedSize(max(self.width(), self.level.spritesheet_width * button_size),
+                          y_offset + self.level.spritesheet_height * button_size)
+        self.tile_buttons.buttons()[0].click()
 
     def correct_points(self, pos):
         pos = [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
@@ -306,7 +330,17 @@ class Designer(QMainWindow):
         exec(query)
 
     def select_tile(self, button):
-        self.current_tile = button.text()
+        if button.text():
+            self.current_tile = button.text()
+        else:
+            self.current_tile = self.button_coords[button]
+
+    def get_tile_image(self):
+        if self.current_tile == "Start":
+            return Flag.image
+        if self.current_tile == "Finish":
+            return Scroll.image
+        return self.level.rnavigate[self.current_tile]
 
     def move_surface(self, key):
         encode = {"↑": (0, -1), "→": (1, 0), "↓": (0, 1), "←": (-1, 0)}
@@ -362,13 +396,7 @@ class Designer(QMainWindow):
                 self.screen.blit(Flag.image, (self.level.start.rect.x, self.level.start.rect.y))
         else:
             self.layer.draw(self.screen)
-        if self.current_tile == "Start":
-            image = Flag.image
-        elif self.current_tile == "Finish":
-            image = Scroll.image
-        else:
-            image = self.level.tiles[self.current_tile]
-        self.screen.blit(image,
+        self.screen.blit(self.get_tile_image(),
                          (self.level.grid_width * self.level.CELL_SIZE, 0))
         if self.gridMode.isChecked():
             color = pygame.Color("red")
@@ -433,8 +461,8 @@ class Designer(QMainWindow):
                     self.level.finish = Scroll(x, y, self.level.all_sprites)
                     pygame.sprite.spritecollide(self.level.finish, self.level.tiles_group, True)
             else:
-                image = self.level.tiles[self.current_tile]
-                Tile(image, x, y, self.level.navigate[image], self.level.all_sprites, self.layer)
+                Tile(self.get_tile_image(), x, y, self.current_tile,
+                     self.level.all_sprites, self.layer)
 
     def del_sprite(self, pos):
         x, y = pos
@@ -797,7 +825,7 @@ def load_image(name, colorkey=None):
     return image
 
 
-def cut_sheets(sheet, names, cell_size, columns, rows):
+def cut_sheets(sheet, cell_size, columns, rows):
     sheet = load_image(sheet)
     rect = pygame.Rect(0, 0, sheet.get_width() // columns, sheet.get_height() // rows)
     frames = list()
@@ -811,10 +839,7 @@ def cut_sheets(sheet, names, cell_size, columns, rows):
                                                  (cell_size, cell_size)))
             navigate[frames[-1]] = (j, i)
             rnavigate[(j, i)] = frames[-1]
-    tiles = dict()  # словарь surface tile по его кодовому символу
-    for i, tile_image in enumerate(frames):
-        tiles[names[i]] = tile_image
-    return tiles, navigate, rnavigate
+    return navigate, rnavigate
 
 
 def real_coords(coord, x=False, y=False):
@@ -881,7 +906,6 @@ class MainEncoder(json.JSONEncoder):
                     "frontground_group": o.frontground_group.sprites(),
                     "enemy_group": o.enemy_group.sprites(),
                     "spritesheet": o.spritesheet,
-                    "names": o.names,
                     "start": o.start,
                     "finish": o.finish}
         elif name == "Tile":
@@ -1605,13 +1629,14 @@ class Level:
         self.enemy_group = pygame.sprite.Group()
         self.CELL_SIZE = 24
         self.spritesheet = "forest_spritesheet.png"
-        self.names = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        self.spritesheet_width, self.spritesheet_height = 10, 8
         self.grid_size = self.grid_width, self.grid_height = None, None
         self.start = None
         self.finish = None
         self.player = None
-        self.tiles, self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.names,
-                                                               self.CELL_SIZE, 10, 4)
+        self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.CELL_SIZE,
+                                                   self.spritesheet_width,
+                                                   self.spritesheet_height)
 
     def load_tiles_group(self, tiles_info, *groups):
         for tile_info in tiles_info:
