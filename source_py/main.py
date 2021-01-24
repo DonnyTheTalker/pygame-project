@@ -162,6 +162,7 @@ class Designer(QMainWindow):
         self.tile_buttons.buttons()[0].click()
 
     def correct_points(self, pos):
+        """Проверяем новый пункт на корректность"""
         pos = [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
         if pos[0] >= self.level.grid_width:
             return False
@@ -170,6 +171,7 @@ class Designer(QMainWindow):
         return True
 
     def get_point(self, pos):
+        """Координаты по сетке тайлов"""
         return [pos[0] // self.level.CELL_SIZE, pos[1] // self.level.CELL_SIZE]
 
     def print_points(self):
@@ -189,6 +191,7 @@ class Designer(QMainWindow):
             print("Надо назначить 2 и более точек")
 
     def hide_marks(self):
+        """Спрятать метки в дизайнере"""
         for mark in self.mark_group:
             mark.hide()
 
@@ -302,6 +305,7 @@ class Designer(QMainWindow):
         self.add_sprite(pos)
 
     def push_side(self, number):
+        """Добавить новое направление стрельбы"""
         if SHOOTING_SIDES[int(number) - 1] not in self.sides:
             self.sides.append(SHOOTING_SIDES[int(number) - 1])
 
@@ -952,6 +956,7 @@ def slice_sprites(spritesheet):
 
 
 def real_coords(coord, x=False, y=False):
+    """Возвращает координаты клетки в пикселях"""
     if x and y:
         return coord * TILE_WIDTH, coord * TILE_HEIGHT
     else:
@@ -962,6 +967,7 @@ def real_coords(coord, x=False, y=False):
 
 
 def update_addition_center(unit):
+    """Возвращает добавку к координатам для выравнивания по центру"""
     addition_y = (unit.rect.centery // TILE_HEIGHT * TILE_HEIGHT +
                   TILE_HEIGHT // 2 - unit.rect.centery)
     addition_x = (unit.rect.centerx // TILE_WIDTH * TILE_WIDTH +
@@ -970,6 +976,7 @@ def update_addition_center(unit):
 
 
 def update_addition_all(width, height):
+    """Возвращает добавку к координатам для выравнивания"""
     return TILE_WIDTH - width, TILE_HEIGHT - height
 
 
@@ -1459,6 +1466,7 @@ class MovingEnemy(AnimatedSprite):
         self.addition_x, self.addition_y = update_addition_center(self)
 
     def generate_states(self):
+        """Генерация всех состояний врага"""
         for i in range(1, len(self.points)):
             if self.points[i][0] != self.points[i - 1][0]:
                 difference = self.points[i][0] - self.points[i - 1][0]
@@ -1469,6 +1477,7 @@ class MovingEnemy(AnimatedSprite):
         self.all_states[0] = self.all_states[1]
 
     def change_state(self, direction=False):
+        """Меняем состояние игрока"""
         self.state_number += self.side_state
         if self.state_number == len(self.all_states) or self.state_number <= 0:
             self.side_state *= -1
@@ -1487,6 +1496,7 @@ class MovingEnemy(AnimatedSprite):
         self.set_status(self.state[0], direction)
 
     def change_point(self):
+        """Меняем следующую цель"""
         self.point_number += self.side_point
         if self.point_number == len(self.points) or self.point_number < 0:
             self.side_point *= -1
@@ -1494,6 +1504,7 @@ class MovingEnemy(AnimatedSprite):
         self.next_point = self.points[self.point_number]
 
     def check_state(self):
+        """Проверяем координаты проивника для смены состояния"""
         if self.state[0] == SpriteStates.MOVING:
             if self.state[1][0] > 0:
                 if self.rect.centerx >= real_coords(self.next_point[0], x=True):
@@ -1543,6 +1554,7 @@ class ShootingEnemy(AnimatedSprite):
         self.damage = damage
 
     def update(self):
+        """Вытреливаем пулей в зависимости от типа ShootingEnemy"""
         if time.time() - self.last_shoot_time > 10:
             self.last_shoot_time = time.time()
             if not self.smart:
@@ -1569,9 +1581,11 @@ class HATEnemy(AnimatedSprite):
                                                self.rect.y + self.addition_y)
 
     def get_collisions(self):
+        """Проверяем столкновения"""
         return pygame.sprite.spritecollide(self, LEVEL.tiles_group, False)
 
     def hat(self):
+        """При столкновении меняем направление"""
         collisions = self.get_collisions()
         if collisions:
             for _ in collisions:
@@ -1581,6 +1595,7 @@ class HATEnemy(AnimatedSprite):
                 break
 
     def gravitation(self):
+        """Действуем гравитацией на врага"""
         self.rect = self.image.get_rect().move(self.rect.x, self.rect.y + self.gravity)
         collisions = self.get_collisions()
         if collisions:
@@ -1622,6 +1637,7 @@ class Bullet(AnimatedSprite):
         self.last_time = 0
 
     def update(self):
+        """Заставляем пулю лететь"""
         if self.speed_x > FRAME:
             self.rect.x += int(self.side_x)
         if self.speed_y > FRAME:
@@ -1640,7 +1656,7 @@ class SmartBullet(Bullet):
         super().__init__(x, y, speed, damage, spritesheet, enemy_width, enemy_height)
 
     def update(self):
-        # Вычисляем направление от пули до игрока
+        """Вычисляем направление от пули до игрока"""
         x = self.rect.x + self.rect.w // 2 - (LEVEL.player.rect.x + LEVEL.player.rect.w // 2)
         y = self.rect.y + self.rect.h // 2 - (LEVEL.player.rect.y + LEVEL.player.rect.h // 2)
         if x:
@@ -1702,7 +1718,7 @@ class RotatingSaw(Saw):
         self.direction = direction
 
     def update(self):
-        # Поворот пилы по окружности
+        """Поворот пилы по окружности"""
         self.angle += 0.01 * self.speed * self.direction
         if self.angle > 360:
             self.angle = 0
@@ -1714,9 +1730,8 @@ class RotatingSaw(Saw):
                                                -self.saw_y - self.rect.h // 2)
         super().update()
 
-    # Рисуем цепь для пилы
-
     def draw(self, surface):
+        """Рисуем цепь для пилы"""
         for i in range(0, self.length, 6):
             pygame.draw.circle(surface, pygame.Color("black"), ((self.length - i) * sin(self.angle)
                                                                 + self.center_x,
