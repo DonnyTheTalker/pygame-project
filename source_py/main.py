@@ -805,8 +805,7 @@ class Menu(QMainWindow, MenuUI):
             while running:
                 for cur_event in pygame.event.get():
                     if (cur_event.type == pygame.QUIT or
-                            cur_event.type == pygame.MOUSEBUTTONDOWN or
-                            cur_event.type == pygame.KEYDOWN):
+                            cur_event.type == pygame.MOUSEBUTTONDOWN):
                         running = False
                 delay = clock.tick(FPS)
                 game_over.update(delay)
@@ -1553,13 +1552,8 @@ class Bullet(AnimatedSprite):
         if self.speed_y > FRAME:
             self.rect.y += int(self.side_y)
         self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
-        # Анимация взрыва
-        # self.status = SpriteStates.DEAD
-        # super().update()
-        # self.kill()
         collides = pygame.sprite.spritecollide(self, LEVEL.tiles_group, False)
         if collides:
-            # Анимация взрыва
             self.kill()
         super().update()
 
@@ -1569,6 +1563,7 @@ class SmartBullet(Bullet):
         super().__init__(x, y, speed, damage, spritesheet, enemy_width, enemy_height)
 
     def update(self):
+        # Вычисляем направление от пули до игрока
         x = self.rect.x + self.rect.w // 2 - (LEVEL.player.rect.x + LEVEL.player.rect.w // 2)
         y = self.rect.y + self.rect.h // 2 - (LEVEL.player.rect.y + LEVEL.player.rect.h // 2)
         if x:
@@ -1595,8 +1590,6 @@ class Obstacle(AnimatedSprite):
         if groups is None:
             groups = list()
         super().__init__(spritesheet, x, y, *groups)
-        # if self.rect.height < TILE_HEIGHT:
-        #    self.image.get_rect().move(self.rect.x, self.rect.y + TILE_HEIGHT - self.rect.height)
         self.addition_x, self.addition_y = update_addition_all(self.rect.w, self.rect.h)
         self.rect = self.image.get_rect().move(self.rect.x + self.addition_x // 2,
                                                self.rect.y + self.addition_y)
@@ -1626,6 +1619,7 @@ class RotatingSaw(Saw):
         self.direction = direction
 
     def update(self):
+        # Поворот пилы по окружности
         self.angle += 0.01 * self.speed * self.direction
         if self.angle > 360:
             self.angle = 0
@@ -1636,6 +1630,8 @@ class RotatingSaw(Saw):
         self.rect = self.image.get_rect().move(self.saw_x - self.rect.w // 2,
                                                -self.saw_y - self.rect.h // 2)
         super().update()
+
+    # Рисуем цепь для пилы
 
     def draw(self, surface):
         for i in range(0, self.length, 6):
