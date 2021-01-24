@@ -92,7 +92,7 @@ class Designer(QMainWindow):
         self.rotating_saw_images = ["saw_image.png", "saw2_image.png"]
         self.moving_images = ["bag_image.png", "dragon_image.png"]
         self.current_enemy = ""
-        self.level = Level(mode=False)
+        self.level = Level()
         self.initUI()
         self.get_size()
         self.timer.start(10)
@@ -821,6 +821,7 @@ class Menu(QMainWindow, MenuUI):
             global LEVEL
             level = json.load(file, object_hook=main_decoder)
             LEVEL = level
+            level.pre_render()
         screen = pygame.display.set_mode(SIZE)
         pygame.display.set_caption(GAME_NAME)
         clock = pygame.time.Clock()
@@ -828,7 +829,6 @@ class Menu(QMainWindow, MenuUI):
         delay = clock.tick(FPS)
         time_start = time.time()
         win = False
-        level.mode = True
         # Основной игровой цикл
         while running:
             for cur_event in pygame.event.get():
@@ -983,7 +983,7 @@ def update_addition_all(width, height):
 def main_decoder(dct):
     """Функция декодировщик для работы с json файлами"""
     if "__Level__" in dct:
-        new_level = Level(mode=False)
+        new_level = Level()
         new_level.load_level(dct)
         return new_level
     if "__Obstacle__" in dct:
@@ -1781,8 +1781,7 @@ class Level:
     """Класс уровня"""
     fon = load_image("forestbg.png")
 
-    def __init__(self, mode=True):
-        self.mode = mode
+    def __init__(self):
         self.all_sprites = pygame.sprite.Group()
         self.background_group = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
@@ -1797,6 +1796,7 @@ class Level:
         self.finish = None
         self.player = None
         self.surface = None
+        self.rotating_saws = None
         self.deaths = 0
         self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.CELL_SIZE,
                                                    self.spritesheet_width,
@@ -1805,8 +1805,14 @@ class Level:
     def resize(self, grid_width, grid_height):
         """Изменение размеров сетки"""
         self.grid_size = self.grid_width, self.grid_height = grid_width, grid_height
+        self.create_surfaces()
+
+    def create_surfaces(self):
         self.surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
                                                self.grid_height * self.CELL_SIZE))
+        self.pre_rendered_surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
+                                                            self.grid_height * self.CELL_SIZE),
+                                                           pygame.SRCALPHA, 32)
 
     def load_tiles_group(self, tiles_info, *groups):
         """Восстановление тайлов по сохраненной информации"""
@@ -1837,8 +1843,7 @@ class Level:
             width = height * level_width // level_height
         self.background_image = pygame.transform.scale(Level.fon, (width, height))
         self.player = Player(self, "player.png", self.start.x, self.start.y, self.all_sprites)
-        self.surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
-                                               self.grid_height * self.CELL_SIZE))
+        self.create_surfaces()
         Block(0, -100, self.grid_width * TILE_WIDTH, 20, self)
         Block(0, self.grid_height * TILE_HEIGHT + 100,
               self.grid_width * TILE_WIDTH, 20, self)
@@ -1859,9 +1864,25 @@ class Level:
         """Обновление всех спрайтов"""
         self.all_sprites.update()
 
+    def pre_render(self):
+        self.pre_rendered_surface.blit(self.background_image, (0, 0))
+        self.background_group.draw(self.pre_rendered_surface)
+        self.tiles_group.draw(self.pre_rendered_surface)
+        self.pre_rendered_surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
+        self.rotating_saws = list()
+        for enemy in self.enemy_group.sprites():
+            if enemy.__class__.__name__ == "RotatingSaw":
+                self.rotating_saws.append(enemy)
+
     def camera(self, screen):
         """Обработка камеры"""
-        self.render()
+        self.surface.fill(pygame.Color("white"))
+        self.surface.blit(self.pre_rendered_surface, (0, 0))
+        for enemy in self.rotating_saws:
+            enemy.draw(self.surface)
+        self.surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
+        self.enemy_group.draw(self.surface)
+        self.frontground_group.draw(self.surface)
         render = self.surface
         crop_width, crop_height = WIDTH // ZOOM, HEIGHT // ZOOM
         if crop_width > render.get_width():
@@ -1886,14 +1907,10 @@ class Level:
     def render(self):
         """Рендер всего уровня"""
         self.surface.fill(pygame.Color("white"))
-        if self.mode and self.background_image:
-            self.surface.blit(self.background_image, (0, 0))
         self.background_group.draw(self.surface)
         self.tiles_group.draw(self.surface)
         if self.finish:
             self.surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
-        if self.mode and self.player:
-            self.surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
         for enemy in self.enemy_group.sprites():
             if enemy.__class__.__name__ == "RotatingSaw":
                 enemy.draw(self.surface)
