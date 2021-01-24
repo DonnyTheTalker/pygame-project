@@ -762,12 +762,12 @@ class Menu(QMainWindow, MenuUI):
     def load_level(path):
         global FRAME
         pygame.init()
-        screen = pygame.display.set_mode((1, 1))
         background_sound = "../data/sounds/background.mp3"
         pygame.mixer.pre_init(44100, -16, 2, 512)
         pygame.mixer.music.load(background_sound)
         pygame.mixer.music.set_volume(50)
         pygame.mixer.music.play(-1)
+        screen = pygame.display.set_mode((1, 1))
         path += '.json'
         with open(path, 'r', encoding='utf-8') as file:
             global LEVEL
@@ -800,11 +800,13 @@ class Menu(QMainWindow, MenuUI):
         if win:
             running = True
             delay = clock.tick(FPS)
-            game_over = GameOver(-WIDTH, 0, int(time_finish - time_start), 0)
+            game_over = GameOver(-WIDTH, 0, int(time_finish - time_start), level.deaths)
             game_over.rect.centery = HEIGHT // 2
             while running:
                 for cur_event in pygame.event.get():
-                    if cur_event.type == pygame.QUIT or cur_event.type == pygame.MOUSEBUTTONDOWN:
+                    if (cur_event.type == pygame.QUIT or
+                            cur_event.type == pygame.MOUSEBUTTONDOWN or
+                            cur_event.type == pygame.KEYDOWN):
                         running = False
                 delay = clock.tick(FPS)
                 game_over.update(delay)
@@ -1637,11 +1639,13 @@ class RotatingSaw(Saw):
 
     def draw(self, surface):
         for i in range(0, self.length, 6):
-            pygame.draw.circle(surface, "black", ((self.length - i) * sin(self.angle)
-                                                  + self.center_x,
-                                                  -((-self.length + i) * cos(self.angle)
-                                                    + self.center_y)), 2)
-        pygame.draw.rect(surface, "black", (self.center_x - 7, -self.center_y - 7, 14, 14), 0)
+            pygame.draw.circle(surface, pygame.Color("black"), ((self.length - i) * sin(self.angle)
+                                                                + self.center_x,
+                                                                -((-self.length + i) * cos(
+                                                                    self.angle)
+                                                                  + self.center_y)), 2)
+        pygame.draw.rect(surface, pygame.Color("black"), (self.center_x - 7, -self.center_y - 7,
+                                                          14, 14), 0)
 
 
 class GameOver(pygame.sprite.Sprite):
@@ -1693,6 +1697,7 @@ class Level:
         self.finish = None
         self.player = None
         self.surface = None
+        self.deaths = 0
         self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.CELL_SIZE,
                                                    self.spritesheet_width,
                                                    self.spritesheet_height)
@@ -1739,6 +1744,7 @@ class Level:
               20, self.grid_height * TILE_HEIGHT + 1, self)
 
     def spawn_player(self):
+        self.deaths += 1
         self.player.hp = 100
         self.player.rect.x, self.player.rect.y = self.start.x, self.start.y
 
@@ -1754,7 +1760,7 @@ class Level:
             crop_height = crop_width * HEIGHT // WIDTH
         if crop_height > render.get_height():
             crop_height = render.get_height()
-            crop_width = height * WIDTH // HEIGHT
+            crop_width = crop_height * WIDTH // HEIGHT
         rect = pygame.rect.Rect(0, 0, crop_width, crop_height)
         rect.center = self.player.rect.center
         rect.left = max(rect.left, 0)
