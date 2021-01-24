@@ -39,7 +39,6 @@ FRAME = 0
 MAX_BULLET_SPEED = 2
 LAST_HIT_TIME = 0
 LEVEL = None
-SCREEN = screen
 START_FRAME = time.time()
 
 
@@ -76,11 +75,11 @@ class Designer(QMainWindow):
         self.enemy_class = "Obstacles"
         self.bullet_image = "bullet.png"
         self.enemies_spritesheets = {"Obstacle": ["spike1.png", "fire1.png", "kust3.png"],
-                                     "MovingEnemy": ["bag.png", "flying_dragon1.png"],
+                                     "MovingEnemy": ["bag.png", "flying_dragon.png"],
                                      "ShootingEnemy": [["black_hole_3.png", "plazma.png"],
                                                        ["black_hole2.png", "bat2.png"]],
-                                     "HATEnemy": ["big_cats1.png", "skeleton.png"],
-                                     "HATSaw": ["hat_saw.png", "hat_saw2.png"],
+                                     "HATEnemy": ["big_cats.png", "skeleton.png"],
+                                     "HATSaw": ["saw.png", "saw2.png"],
                                      "RotatingSaw": ["saw.png", "saw2.png"],
                                      "Saw": ["saw.png", "saw2.png"],
                                      }
@@ -309,7 +308,7 @@ class Designer(QMainWindow):
 
     def get_size(self):
         width, height = self.widthBox.value(), self.heightBox.value()
-        self.level.grid_size = self.level.grid_width, self.level.grid_height = width, height
+        self.level.resize(width, height)
         self.resize_window()
 
     def resize_window(self):
@@ -774,13 +773,13 @@ class Menu(QMainWindow, MenuUI):
             global LEVEL
             level = json.load(file, object_hook=main_decoder)
             LEVEL = level
-        global SCREEN
         screen = pygame.display.set_mode(SIZE)
-        SCREEN = screen
         pygame.display.set_caption(GAME_NAME)
         clock = pygame.time.Clock()
         running = True
         delay = clock.tick(FPS)
+        time_start = time.time()
+        win = False
         while running:
             for cur_event in pygame.event.get():
                 if cur_event.type == pygame.QUIT:
@@ -794,9 +793,24 @@ class Menu(QMainWindow, MenuUI):
             delay = clock.tick(FPS)
             pygame.display.flip()
             if level.check_scroll():
-                print("YOU WIN")
+                win = True
                 running = False
             FRAME = (FRAME + 1) % MAX_BULLET_SPEED
+        time_finish = time.time()
+        if win:
+            running = True
+            delay = clock.tick(FPS)
+            game_over = GameOver(-WIDTH, 0, int(time_finish - time_start), 0)
+            game_over.rect.centery = HEIGHT // 2
+            while running:
+                for cur_event in pygame.event.get():
+                    if cur_event.type == pygame.QUIT or cur_event.type == pygame.MOUSEBUTTONDOWN:
+                        running = False
+                delay = clock.tick(FPS)
+                game_over.update(delay)
+                level.camera(screen)
+                game_over.draw(screen)
+                pygame.display.flip()
         pygame.quit()
 
 
@@ -851,6 +865,39 @@ def cut_sheets(sheet, cell_size, columns, rows):
             navigate[frames[-1]] = (j, i)
             rnavigate[(j, i)] = frames[-1]
     return navigate, rnavigate
+
+
+def slice_sprites(spritesheet):
+    """Генерирует сетку спрайтов, найденных в spritesheet"""
+    spritesheet = load_image(spritesheet)
+    sprites = list()  # Сетка обрезанных спрайтов
+    top, bottom = None, None
+    cur_row = -1
+    for y in range(spritesheet.get_height()):
+        empty_row = not any(spritesheet.get_at((x, y))[3] > 0
+                            for x in range(spritesheet.get_width()))
+        if empty_row and top:
+            bottom = y - 1
+            cur_row += 1
+            sprites.append(list())
+            right, left = None, None
+            cur_column = -1
+            for x in range(spritesheet.get_width()):
+                empty_column = not any(spritesheet.get_at((x, y))[3] > 0
+                                       for y in range(top, bottom + 1))
+                if empty_column and left:
+                    right = x - 1
+                    cur_column += 1
+                    new_sprite = spritesheet.subsurface(pygame.Rect(left, top, right - left + 1,
+                                                                    bottom - top + 1))
+                    sprites[cur_row].append(new_sprite)
+                    right, left = None, None
+                elif not empty_column and not left:
+                    left = x
+            top, bottom = None, None
+        elif not empty_row and not top:
+            top = y
+    return sprites
 
 
 def real_coords(coord, x=False, y=False):
@@ -923,14 +970,8 @@ class MainEncoder(json.JSONEncoder):
             return {"x": o.rect.x,
                     "y": o.rect.y,
                     "coords": o.coords}
-        elif name == "Obstacle":
-            return {"__Obstacle__": True,
-                    "x": o.x,
-                    "y": o.y,
-                    "damage": o.damage,
-                    "spritesheet": o.spritesheet}
-        elif name == "Saw":
-            return {"__Saw__": True,
+        elif name in ["Obstacle", "Saw"]:
+            return {f"__{name}__": True,
                     "x": o.x,
                     "y": o.y,
                     "damage": o.damage,
@@ -954,15 +995,8 @@ class MainEncoder(json.JSONEncoder):
                     "spritesheet": o.spritesheet,
                     "speed": o.speed,
                     "direction": o.direction}
-        elif name == "HATEnemy":
-            return {"__HATEnemy__": True,
-                    "spritesheet": o.spritesheet,
-                    "x": o.x,
-                    "y": o.y,
-                    "damage": o.damage,
-                    "speed": o.speed}
-        elif name == "HATSaw":
-            return {"__HATSaw__": True,
+        elif name in ["HATEnemy", "HATSaw"]:
+            return {f"__{name}__": True,
                     "spritesheet": o.spritesheet,
                     "x": o.x,
                     "y": o.y,
@@ -976,12 +1010,8 @@ class MainEncoder(json.JSONEncoder):
                     "points": o.points,
                     "speed": o.speed,
                     "spritesheet": o.spritesheet}
-        elif name == "Flag":
-            return {"__Flag__": True,
-                    "x": o.x,
-                    "y": o.y}
-        elif name == "Scroll":
-            return {"__Flag__": True,
+        elif name in ["Flag", "Scroll"]:
+            return {f"__{name}__": True,
                     "x": o.x,
                     "y": o.y}
         else:
@@ -1049,6 +1079,25 @@ class Tile(pygame.sprite.Sprite):
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
+    all_spritesheets = ["bag.png", "bat2.png", "big_cats.png", "black_hole_3.png",
+                        "black_hole2.png", "fire1.png", "flying_dragon.png", "kust3.png",
+                        "player.png", "plazma.png", "saw.png", "saw2.png", "skeleton.png",
+                        "spike1.png"]
+
+    spritesheets_dict = dict()
+    for sprite_name in all_spritesheets:
+        # Создаем ассоциативный массив спрайтов
+        # Для каждого состояния анимации
+        spritesheets_dict[sprite_name] = dict()
+        for state in SpriteStates.get_states():
+            spritesheets_dict[sprite_name][state] = list()
+        sprites = slice_sprites(sprite_name)
+        for i, key in enumerate(spritesheets_dict[sprite_name]):
+            if i < len(sprites):
+                spritesheets_dict[sprite_name][key] = sprites[i].copy()
+            else:
+                break
+
     def __init__(self, spritesheet, x, y, *groups):
         super().__init__(*groups)
         self.x = x
@@ -1057,12 +1106,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.direction = True
         self.status = None
         self.current_sprite = 0
-        self.sprites = dict()
-        # Создаем ассоциативный массив спрайтов
-        # Для каждого состояния анимации
-        for state in SpriteStates.get_states():
-            self.sprites[state] = list()
-        self.slice_sprites(load_image(spritesheet))
+        self.sprites = AnimatedSprite.spritesheets_dict[spritesheet]
         self.width = max(max([cur_sprite.get_width() for cur_sprite in self.sprites[state]] +
                              [0])
                          for state in self.sprites) + 2
@@ -1117,41 +1161,6 @@ class AnimatedSprite(pygame.sprite.Sprite):
                           self.height - self.image.get_height()))
         self.image = surface
         self.mask = pygame.mask.from_surface(self.image)
-
-    def slice_sprites(self, spritesheet):
-        """Генерирует сетку спрайтов, найденных в spritesheet"""
-        sprites = list()  # Сетка обрезанных спрайтов
-        top, bottom = None, None
-        cur_row = -1
-        for y in range(spritesheet.get_height()):
-            empty_row = not any(spritesheet.get_at((x, y))[3] > 0
-                                for x in range(spritesheet.get_width()))
-            if empty_row and top:
-                bottom = y - 1
-                cur_row += 1
-                sprites.append(list())
-                right, left = None, None
-                cur_column = -1
-                for x in range(spritesheet.get_width()):
-                    empty_column = not any(spritesheet.get_at((x, y))[3] > 0
-                                           for y in range(top, bottom + 1))
-                    if empty_column and left:
-                        right = x - 1
-                        cur_column += 1
-                        new_sprite = spritesheet.subsurface(pygame.Rect(left, top, right - left + 1,
-                                                                        bottom - top + 1))
-                        sprites[cur_row].append(new_sprite)
-                        right, left = None, None
-                    elif not empty_column and not left:
-                        left = x
-                top, bottom = None, None
-            elif not empty_row and not top:
-                top = y
-        for i, key in enumerate(self.sprites):
-            if i < len(sprites):
-                self.sprites[key] = sprites[i].copy()
-            else:
-                break
 
 
 class Player(AnimatedSprite):
@@ -1626,13 +1635,44 @@ class RotatingSaw(Saw):
                                                -self.saw_y - self.rect.h // 2)
         super().update()
 
-    def draw(self):
+    def draw(self, surface):
         for i in range(0, self.length, 6):
-            pygame.draw.circle(SCREEN, "black", ((self.length - i) * sin(self.angle)
-                                                 + self.center_x,
-                                                 -((-self.length + i) * cos(self.angle)
-                                                   + self.center_y)), 2)
-        pygame.draw.rect(SCREEN, "black", (self.center_x - 7, -self.center_y - 7, 14, 14), 0)
+            pygame.draw.circle(surface, "black", ((self.length - i) * sin(self.angle)
+                                                  + self.center_x,
+                                                  -((-self.length + i) * cos(self.angle)
+                                                    + self.center_y)), 2)
+        pygame.draw.rect(surface, "black", (self.center_x - 7, -self.center_y - 7, 14, 14), 0)
+
+
+class GameOver(pygame.sprite.Sprite):
+    def __init__(self, x, y, game_time=0, deaths=0, *args):
+        super().__init__(*args)
+        self.image = load_image("GameOver.png")
+        self.rect = self.image.get_rect().move(x, y)
+        self.x, self.y = x, y
+        self.speed = 200
+        color = pygame.Color(255, 148, 180)
+        self.time_text = render_text(
+            f"Время игры: {game_time // 60}:{game_time % 60 // 10}{game_time % 60 % 10}", 48, color)
+        self.time_rect = self.time_text.get_rect()
+        self.time_rect.x = 200
+        self.time_rect.y = HEIGHT // 4 * 3
+        self.death_text = render_text(f"Количество смертей: {deaths}", 48, color)
+        self.death_rect = self.death_text.get_rect()
+        self.death_rect.x = 200
+        self.death_rect.top = self.time_rect.bottom + 50
+
+    def update(self, delay):
+        self.x += int(self.speed * delay / 1000)
+        if self.x + self.rect.width >= WIDTH:
+            self.x = WIDTH - self.rect.width
+            self.speed = 0
+        self.rect.x = int(self.x)
+
+    def draw(self, screen):
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+        screen.blit(self.time_text, (self.x + self.time_rect.x, self.time_rect.y))
+        screen.blit(self.death_text, (self.x + self.death_rect.x, self.death_rect.y))
 
 
 class Level:
@@ -1652,9 +1692,15 @@ class Level:
         self.start = None
         self.finish = None
         self.player = None
+        self.surface = None
         self.navigate, self.rnavigate = cut_sheets(self.spritesheet, self.CELL_SIZE,
                                                    self.spritesheet_width,
                                                    self.spritesheet_height)
+
+    def resize(self, grid_width, grid_height):
+        self.grid_size = self.grid_width, self.grid_height = grid_width, grid_height
+        self.surface = pygame.surface.Surface((self.grid_width * self.CELL_SIZE,
+                                               self.grid_height * self.CELL_SIZE))
 
     def load_tiles_group(self, tiles_info, *groups):
         for tile_info in tiles_info:
@@ -1691,7 +1737,6 @@ class Level:
         Block(-20, 0, 20, self.grid_height * TILE_HEIGHT + 1, self)
         Block(self.grid_width * TILE_WIDTH + 20, 0,
               20, self.grid_height * TILE_HEIGHT + 1, self)
-
 
     def spawn_player(self):
         self.player.hp = 100
@@ -1731,10 +1776,11 @@ class Level:
         self.tiles_group.draw(self.surface)
         if self.finish:
             self.surface.blit(Scroll.image, (self.finish.rect.x, self.finish.rect.y))
-        self.surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
+        if self.player:
+            self.surface.blit(self.player.image, (self.player.rect.x, self.player.rect.y))
         for enemy in self.enemy_group.sprites():
             if enemy.__class__.__name__ == "RotatingSaw":
-                enemy.draw()
+                enemy.draw(self.surface)
         self.enemy_group.draw(self.surface)
         self.frontground_group.draw(self.surface)
 
