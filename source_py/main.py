@@ -12,7 +12,7 @@ from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QApplication, QPushButton, QButtonGroup
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QSize
 from PyQt5.QtGui import QIcon, QPixmap, QColor
 from PIL import Image, ImageQt
 from selecter import *
@@ -135,30 +135,35 @@ class Designer(QMainWindow):
         """Генерация кнопок выбора тайлов"""
         y_offset = self.height()
         between_offset = 5
-        button_size = self.level.CELL_SIZE + between_offset
+        button_height = self.level.CELL_SIZE * 2
+        button_size = button_height + between_offset
         for button in self.tile_buttons.buttons():
             y_offset = min(y_offset, button.y())
             button.close()
         self.button_coords.clear()
         spritesheet_image = Image.open(f"../data/images/{self.level.spritesheet}")
         spritesheet_image = spritesheet_image.resize((self.level.spritesheet_width *
-                                                      self.level.CELL_SIZE,
+                                                      button_height,
                                                       self.level.spritesheet_height *
-                                                      self.level.CELL_SIZE))
+                                                      button_height))
         for row in range(self.level.spritesheet_height):
             for column in range(self.level.spritesheet_width):
                 button = QPushButton(self)
                 self.button_coords[button] = (row, column)
-                button.resize(self.level.CELL_SIZE, self.level.CELL_SIZE)
+                button.resize(button_height, button_height)
                 button.move(20 + column * button_size,
                             y_offset + row * button_size)
-                left, up = self.level.CELL_SIZE * column, self.level.CELL_SIZE * row
-                button_image = ImageQt.ImageQt(spritesheet_image.crop((left, up,
-                                                                       left + self.level.CELL_SIZE,
-                                                                       up + self.level.CELL_SIZE)))
+                left, up = button_height * column, button_height * row
+                button_image = spritesheet_image.crop((left, up,
+                                                       left + button_height,
+                                                       up + button_height))
+                button_image = button_image.resize((button_height, button_height))
+                button_image = ImageQt.ImageQt(button_image)
                 button.setIcon(QIcon(QPixmap.fromImage(button_image)))
+                button.setIconSize(QSize(button_height, button_height))
                 self.tile_buttons.addButton(button)
-        self.setFixedSize(max(self.width(), self.level.spritesheet_width * button_size),
+        self.setFixedSize(max(self.width(),
+                              self.level.spritesheet_width * button_size + button_height),
                           y_offset + self.level.spritesheet_height * button_size)
         self.tile_buttons.buttons()[0].click()
 
@@ -316,6 +321,7 @@ class Designer(QMainWindow):
         for button in group.buttons():
             button.setText(f"{i}")
             button.setIcon(load_icon(images[i]))
+            button.setIconSize(QSize(38, 38))
             button.clicked.connect(partial(function, name, marks))
             i += 1
 
@@ -856,7 +862,8 @@ class Menu(QMainWindow, MenuUI):
             while running:
                 for cur_event in pygame.event.get():
                     if (cur_event.type == pygame.QUIT or
-                            cur_event.type == pygame.MOUSEBUTTONDOWN):
+                            cur_event.type == pygame.MOUSEBUTTONDOWN or
+                            cur_event.type == pygame.KEYDOWN and cur_event.key == pygame.K_RETURN):
                         running = False
                 delay = clock.tick(FPS)
                 game_over.update(delay)
@@ -1410,7 +1417,8 @@ class Player(AnimatedSprite):
                 self.moving_left = True
             # При попытке прыжка - проверяем на наличие дополнительного прыжка (при скольжении)
             # Или при наличии второго прыжка (self.jump_count)
-            elif event.key == pygame.K_UP or pygame.key == pygame.K_w:
+            elif (event.key == pygame.K_UP or event.key == pygame.K_w or
+                  event.key == pygame.K_SPACE):
                 if self.jump_count > 0 or self.has_extra_jump:
                     self.in_air = True
                     self.has_extra_jump = False
