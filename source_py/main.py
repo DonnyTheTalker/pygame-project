@@ -554,8 +554,11 @@ class Designer(QMainWindow):
             self.statusBar().showMessage("Не выбраны точки старта и финиша")
             return
         self.statusBar().hide()
-        with open(f'../data/custom_levels/{name}.json', 'w', encoding='utf-8') as file:
-            json.dump(self.level, file, cls=MainEncoder)
+        try:
+            with open(f'../data/custom_levels/{name}.json', 'w', encoding='utf-8') as file:
+                json.dump(self.level, file, cls=MainEncoder)
+        except Exception:
+            self.statusBar().showMessage("Ошибка сохранения")
 
     def open(self):
         """Открыть уровень"""
