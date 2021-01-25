@@ -1,0 +1,501 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="43303af3-4fc3-4282-a1a2-64a2b52a027c" name="Default Changelist" comment="save bug fixed" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="feature/new_levels" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
+  </component>
+  <component name="ProjectId" id="1may7gK4FppirZAdTPMgJKMPzeN" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="preferences.externalTools" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\Alexey\PycharmProjects\pygame-project" />
+      <recent name="C:\Users\Alexey\PycharmProjects\pygame-project\data\images" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Alexey\PycharmProjects\pygame-project\source_py" />
+      <recent name="C:\Users\Alexey\PycharmProjects\pygame-project\data\story_levels" />
+      <recent name="C:\Users\Alexey\PycharmProjects\pygame-project\data\images" />
+      <recent name="C:\Users\Alexey\PycharmProjects\pygame-project\data" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.main">
+    <configuration name="Enemies" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="pygame-project" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/source_py" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/source_py/Enemies.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="designer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="pygame-project" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/source_py" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/source_py/designer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="level" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="pygame-project" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/source_py" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/source_py/level.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="pygame-project" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/source_py" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/source_py/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="player" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="pygame-project" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/source_py" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/source_py/player.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+        <item itemvalue="Python.player" />
+        <item itemvalue="Python.level" />
+        <item itemvalue="Python.Enemies" />
+        <item itemvalue="Python.designer" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="43303af3-4fc3-4282-a1a2-64a2b52a027c" name="Default Changelist" comment="" />
+      <created>1609745832963</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1609745832963</updated>
+    </task>
+    <task id="LOCAL-00001" summary="Representing a designer's work">
+      <created>1609800955301</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1609800955301</updated>
+    </task>
+    <task id="LOCAL-00002" summary="player sliding bug fix">
+      <created>1609840389976</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1609840389976</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Added work with layers&#10;Added a texture pack for the forest (not yet complete)">
+      <created>1610037224669</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1610037224669</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Added a texture pack for the forest (not yet complete)">
+      <created>1610037373059</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1610037373059</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Added save function&#10;create test_level">
+      <created>1610050709755</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1610050709755</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Added open levels">
+      <created>1610366887713</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1610366887713</updated>
+    </task>
+    <task id="LOCAL-00007" summary="start working with json">
+      <created>1610452364432</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1610452364432</updated>
+    </task>
+    <task id="LOCAL-00008" summary="finish working with json">
+      <created>1610626449115</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1610626449116</updated>
+    </task>
+    <task id="LOCAL-00009" summary="merge all files into main excluding the designer">
+      <created>1611080977904</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1611080977904</updated>
+    </task>
+    <task id="LOCAL-00010" summary="merge all files into main excluding the designer">
+      <created>1611081306109</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1611081306109</updated>
+    </task>
+    <task id="LOCAL-00011" summary="improved encoding/decoding algorithm">
+      <created>1611227958883</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1611227958883</updated>
+    </task>
+    <task id="LOCAL-00012" summary="enemy encoding and decoding added">
+      <created>1611343764453</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1611343764453</updated>
+    </task>
+    <task id="LOCAL-00013" summary="another commit, another bugs fixed">
+      <created>1611346904794</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1611346904794</updated>
+    </task>
+    <task id="LOCAL-00014" summary="we need moore bugs fixed! MOOOOORE">
+      <created>1611388576764</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1611388576764</updated>
+    </task>
+    <task id="LOCAL-00015" summary="player positions added">
+      <created>1611396214131</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1611396214131</updated>
+    </task>
+    <task id="LOCAL-00016" summary="designer.ui modernized">
+      <created>1611407410840</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1611407410840</updated>
+    </task>
+    <task id="LOCAL-00017" summary="png files added">
+      <created>1611407478710</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1611407478710</updated>
+    </task>
+    <task id="LOCAL-00018" summary="code managment little bit">
+      <created>1611410101983</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1611410101983</updated>
+    </task>
+    <task id="LOCAL-00019" summary="player added into level">
+      <created>1611416156739</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1611416156739</updated>
+    </task>
+    <task id="LOCAL-00020" summary="simple levels added">
+      <created>1611416188248</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1611416188248</updated>
+    </task>
+    <task id="LOCAL-00021" summary="spike image minimized">
+      <created>1611427005556</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1611427005556</updated>
+    </task>
+    <task id="LOCAL-00022" summary="Obstacles integrated into game loop&#10;Few levels added">
+      <created>1611433650256</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1611433650256</updated>
+    </task>
+    <task id="LOCAL-00023" summary="whoops bug found">
+      <created>1611434081428</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1611434081428</updated>
+    </task>
+    <task id="LOCAL-00024" summary="whoops bug found">
+      <created>1611445552570</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1611445552570</updated>
+    </task>
+    <task id="LOCAL-00025" summary="menu added">
+      <created>1611445614220</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1611445614220</updated>
+    </task>
+    <task id="LOCAL-00026" summary="QIcons added for tiles buttons&#10;added shadows tiles">
+      <created>1611495672164</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1611495672165</updated>
+    </task>
+    <task id="LOCAL-00027" summary="camera added&#10;little bugs fixed">
+      <created>1611508307565</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1611508307565</updated>
+    </task>
+    <task id="LOCAL-00028" summary="render boosted&#10;need fix designer">
+      <created>1611509077511</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1611509077511</updated>
+    </task>
+    <task id="LOCAL-00029" summary="GameOver addedd">
+      <created>1611516520640</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1611516520640</updated>
+    </task>
+    <task id="LOCAL-00030" summary="bug fixing little bit">
+      <created>1611517925529</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1611517925529</updated>
+    </task>
+    <task id="LOCAL-00031" summary="GameOver.png added">
+      <created>1611517978269</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1611517978269</updated>
+    </task>
+    <task id="LOCAL-00032" summary="bug fixed&#10;comments added">
+      <created>1611521285491</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1611521285491</updated>
+    </task>
+    <task id="LOCAL-00033" summary="second_level added">
+      <created>1611527786657</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1611527786657</updated>
+    </task>
+    <task id="LOCAL-00034" summary="render boosted">
+      <created>1611530442713</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1611530442713</updated>
+    </task>
+    <task id="LOCAL-00035" summary="levels added">
+      <created>1611530734603</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1611530734603</updated>
+    </task>
+    <task id="LOCAL-00036" summary="reformated selecter.ui to selecter.py">
+      <created>1611531081620</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1611531081620</updated>
+    </task>
+    <task id="LOCAL-00037" summary="spacebar and return button handling added&#10;designers buttons resized">
+      <created>1611574954149</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1611574954149</updated>
+    </task>
+    <task id="LOCAL-00038" summary="save bug fixed">
+      <created>1611575090797</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1611575090797</updated>
+    </task>
+    <option name="localTasksCounter" value="39" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="oldMeFiltersMigrated" value="true" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="another commit, another bugs fixed" />
+    <MESSAGE value="we need moore bugs fixed! MOOOOORE" />
+    <MESSAGE value="player positions added" />
+    <MESSAGE value="designer.ui modernized" />
+    <MESSAGE value="png files added" />
+    <MESSAGE value="code managment little bit" />
+    <MESSAGE value="player added into level" />
+    <MESSAGE value="simple levels added" />
+    <MESSAGE value="spike image minimized" />
+    <MESSAGE value="Obstacles integrated into game loop&#10;Few levels added" />
+    <MESSAGE value="whoops bug found" />
+    <MESSAGE value="menu added" />
+    <MESSAGE value="QIcons added for tiles buttons&#10;added shadows tiles" />
+    <MESSAGE value="camera added&#10;little bugs fixed" />
+    <MESSAGE value="render boosted&#10;need fix designer" />
+    <MESSAGE value="GameOver addedd" />
+    <MESSAGE value="bug fixing little bit" />
+    <MESSAGE value="GameOver.png added" />
+    <MESSAGE value="bug fixed&#10;comments added" />
+    <MESSAGE value="second_level added" />
+    <MESSAGE value="render boosted" />
+    <MESSAGE value="levels added" />
+    <MESSAGE value="reformated selecter.ui to selecter.py" />
+    <MESSAGE value="spacebar and return button handling added&#10;designers buttons resized" />
+    <MESSAGE value="save bug fixed" />
+    <option name="LAST_COMMIT_MESSAGE" value="save bug fixed" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
